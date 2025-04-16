@@ -21,7 +21,7 @@ def read_mp4(name_path):
     vidcap.release()
     return frames
 
-def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.5):
+def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.1):
     H,W,C = rgb.shape
     assert(C==3)
     N,D = pts.shape
