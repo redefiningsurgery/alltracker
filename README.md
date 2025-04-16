@@ -21,3 +21,23 @@ pip install -r requirements.txt
 ```
 
 
+## running the demo
+
+Download the model:
+
+```
+download_reference_model.sh
+tar -xvf alltracker_reference.tar.gz
+```
+
+Download the sample video:
+```
+cd demo_video
+sh download_video.sh
+cd ..
+```
+
+Run the demo
+```
+python demo.py
+```
