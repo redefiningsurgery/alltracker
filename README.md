@@ -1,6 +1,6 @@
 # AllTracker: Efficient Dense Point Tracking at High Resolution
 
-**[[Project Page](https://alltracker.github.io/)]**
+**[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)]**
 
 ## env setup
 
