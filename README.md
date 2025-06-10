@@ -2,7 +2,7 @@
 
 **[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)]**
 
-## env setup
+## Env setup
 
 Install miniconda:
 ```
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ```
 
 
-## running the demo
+## Running the demo
 
 Download the model:
 
@@ -45,8 +45,9 @@ python demo.py
 ```
 
 
+## Training code
 
-
+Coming soon! (After I get back from CVPR.)
 
 
 ## Citation
