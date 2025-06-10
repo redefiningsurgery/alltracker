@@ -8,6 +8,7 @@ import PIL.Image
 import numpy as np
 import os
 from prettytable import PrettyTable
+import time
 
 def read_mp4(name_path):
     vidcap = cv2.VideoCapture(name_path)
@@ -21,11 +22,16 @@ def read_mp4(name_path):
     vidcap.release()
     return frames
 
-def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.1):
+def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.1, inds=None):
     H,W,C = rgb.shape
     assert(C==3)
     N,D = pts.shape
     assert(D==2)
+    if inds is not None:
+        pts = pts[inds]
+        visibs = visibs[inds]
+        confs = confs[inds]
+        colors = colors[inds]
     for ii in range(N):
         xy = pts[ii].astype(np.int32)
         color = (int(colors[ii,0]),int(colors[ii,1]),int(colors[ii,2]))
@@ -70,24 +76,32 @@ def forward_video(rgbs, model, args):
     
     torch.cuda.empty_cache()
     print('starting forward...')
+    f_start_time = time.time()
     flows_e, visconf_maps_e, _, _ = \
         model(rgbs, iters=args.inference_iters, sw=None, is_training=False)
-    print('finished forward!')
+    ftime = time.time()-f_start_time
+    print('finished forward; %.2f seconds / %d frames; %d fps' % (ftime, T, round(T/ftime)))
     traj_maps_e = flows_e + grid_xy # B,T,2,H,W
     utils.basic.print_stats('traj_maps_e', traj_maps_e)
     utils.basic.print_stats('visconf_maps_e', visconf_maps_e)
 
     # subsample to make the vis more readable
-    rate = 4
+    rate = args.subsample_rate
     trajs_e = traj_maps_e[:,:,:,::rate,::rate].reshape(B,T,2,-1).permute(0,1,3,2) # B,T,N,2
     visconfs_e = visconf_maps_e[:,:,:,::rate,::rate].reshape(B,T,2,-1).permute(0,1,3,2) # B,T,N,2
     print('trajs_e', trajs_e.shape)
     xy0 = trajs_e[0,0].cpu().numpy()
     colors = utils.improc.get_2d_colors(xy0, H, W)
 
-    # pt vis
-    rgb_out_f = './pt_vis.mp4'
-    temp_dir = 'temp_pt_vis'
+    # sort according to velocity, so that moving points are drawn last
+    vels = trajs_e[0,1:].detach().cpu().numpy() - trajs_e[0,:-1].detach().cpu().numpy() # T-1,N,2
+    vels = np.linalg.norm(vels, axis=-1).mean(axis=0)
+    inds = np.argsort(vels)
+
+    fn = args.mp4_path.split('/')[-1].split('.')[0]
+    rgb_out_f = './pt_vis_%s_rate%d.mp4' % (fn, rate)
+    print('rgb_out_f', rgb_out_f)
+    temp_dir = 'temp_pt_vis_%s_rate%d' % (fn, rate)
     utils.basic.mkdir(temp_dir)
     vis = []
     for ti in range(T):
@@ -95,13 +109,15 @@ def forward_video(rgbs, model, args):
                           trajs_e[0,ti].detach().cpu().numpy(),
                           visconfs_e[0,ti,:,0].detach().cpu().numpy(),
                           visconfs_e[0,ti,:,1].detach().cpu().numpy(),
-                          colors=colors)
+                          colors=colors,
+                          radius=max(int(rate//2),1),
+                          inds=inds)
         vis.append(pt_vis)
     for ti in range(T):
         temp_out_f = '%s/%03d.png' % (temp_dir, ti)
         im = PIL.Image.fromarray(vis[ti])
         im.save(temp_out_f, "PNG", subsampling=0, quality=100)
-    os.system('/usr/bin/ffmpeg -y -hide_banner -loglevel error -f image2 -framerate 24 -pattern_type glob -i "./%s/*.png" -c:v libx264 -crf 20 -pix_fmt yuv420p %s' % (temp_dir, rgb_out_f))
+    os.system('/usr/bin/ffmpeg -y -hide_banner -loglevel error -f image2 -framerate 30 -pattern_type glob -i "./%s/*.png" -c:v libx264 -crf 20 -pix_fmt yuv420p %s' % (temp_dir, rgb_out_f))
 
     # # flow vis
     # rgb_out_f = './flow_vis.mp4'
@@ -148,10 +164,12 @@ def run(model, args):
     H,W = rgbs[0].shape[:2]
     
     # shorten & shrink the video, in case the gpu is small
-    rgbs = rgbs[:250]
-    scale = min(768/H, 768/W)
-    rgbs = [cv2.resize(rgb, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR) for rgb in rgbs]
-
+    rgbs = rgbs[:400]
+    HH = 1024
+    scale = min(HH/H, HH/W)
+    H, W = int(H*scale), int(W*scale)
+    H, W = H//8 * 8, W//8 * 8 # make it divisible by 8
+    rgbs = [cv2.resize(rgb, dsize=(W, H), interpolation=cv2.INTER_LINEAR) for rgb in rgbs]
     print('rgbs[0]', rgbs[0].shape)
 
     # move to gpu
@@ -173,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("--mp4_path", type=str, default='demo_video/monkey.mp4') # input video 
     parser.add_argument("--inference_iters", type=int, default=4) # number of inference steps per forward
     parser.add_argument("--window_len", type=int, default=16) # model hyperparam
+    parser.add_argument("--subsample_rate", type=int, default=4) # vis hyp
     parser.add_argument("--mixed_precision", action='store_true', default=False)
     args = parser.parse_args()
 
