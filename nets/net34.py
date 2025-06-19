@@ -191,7 +191,7 @@ class Net(nn.Module):
             assert T == 2
         return images, T, indices
 
-    def get_fmaps(self, images_, B, T, sw, is_training, nograd_backbone):
+    def get_fmaps(self, images_, B, T, sw, is_training):
         _, _, H_pad, W_pad = images_.shape # revised HW
 
         C, H8, W8 = self.dim*2, H_pad//8, W_pad//8
@@ -226,24 +226,19 @@ class Net(nn.Module):
                 images_ = images_.cuda()
             if self.use_basicencoder:
                 if self.full_split:
-                    # if self.half_corr:
                     fmaps1_ = self.fnet(images_)
                     fmaps2_ = self.cnet(images_)
                     fmaps_ = torch.cat([fmaps1_, fmaps2_], axis=1)
                 else:
                     fmaps_ = self.fnet(images_)
             else:
-                if nograd_backbone:
-                    with torch.no_grad():
-                        fmaps_ = self.cnn(images_)
-                else:
-                    fmaps_ = self.cnn(images_)
+                fmaps_ = self.cnn(images_)
                 if sw is not None and sw.save_this:
                     sw.summ_feat('1_model/fmap_raw', fmaps_[0:1])
                 fmaps_ = self.dot_conv(fmaps_) # B*T,C,H8,W8
         return fmaps_
     
-    def forward(self, images, iters=6, sw=None, nograd_backbone=False, is_training=False, stride=None):
+    def forward(self, images, iters=6, sw=None, is_training=False, stride=None):
         B,T,C,H,W = images.shape
         S = self.seqlen
         device = images.device
@@ -276,7 +271,7 @@ class Net(nn.Module):
             C = self.dim
             C2 = C
 
-        fmaps = self.get_fmaps(images_, B, T, sw, is_training, nograd_backbone).reshape(B,T,C,H8,W8)
+        fmaps = self.get_fmaps(images_, B, T, sw, is_training).reshape(B,T,C,H8,W8)
         # print('fmaps_', fmaps_.shape)
         device = fmaps.device
 
@@ -395,9 +390,9 @@ class Net(nn.Module):
             full_visconfs = full_visconfs[:,:T_bak]
             # print('full_flows trim', full_flows.shape)
             
-        return full_flows, full_visconfs, all_flow_preds, all_visconf_preds#, bak_flows8
+        return full_flows, full_visconfs, all_flow_preds, all_visconf_preds
     
-    def forward_sliding(self, images, iters=6, sw=None, nograd_backbone=False, is_training=False, window_len=None, stride=None):
+    def forward_sliding(self, images, iters=6, sw=None, is_training=False, window_len=None, stride=None):
         B,T,C,H,W = images.shape
         S = self.seqlen if window_len is None else window_len
         device = images.device
@@ -430,7 +425,7 @@ class Net(nn.Module):
             all_flow_preds = []
             all_visconf_preds = []
             
-            fmaps = self.get_fmaps(images_, B, T, sw, is_training, nograd_backbone).reshape(B,T,C,H8,W8)
+            fmaps = self.get_fmaps(images_, B, T, sw, is_training).reshape(B,T,C,H8,W8)
             device = fmaps.device
             
             flows8 = torch.zeros((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
@@ -451,7 +446,7 @@ class Net(nn.Module):
             full_flows = all_flow_preds[-1].reshape(B,2,H,W).detach().cpu()
             full_visconfs = all_visconf_preds[-1].reshape(B,2,H,W).detach().cpu()
             
-            return full_flows, full_visconfs, all_flow_preds, all_visconf_preds#, bak_flows8
+            return full_flows, full_visconfs, all_flow_preds, all_visconf_preds
 
         assert T > 2 # multiframe tracking
         
@@ -464,7 +459,7 @@ class Net(nn.Module):
         full_visconfs = torch.zeros((B,T,2,H,W), dtype=dtype, device='cpu')
         
         images_ = images_.reshape(B,T,3,H_pad,W_pad)
-        fmap_anchor = self.get_fmaps(images_[:,:1].reshape(-1,3,H_pad,W_pad), B, 1, sw, is_training, nograd_backbone).reshape(B,C,H8,W8)
+        fmap_anchor = self.get_fmaps(images_[:,:1].reshape(-1,3,H_pad,W_pad), B, 1, sw, is_training).reshape(B,C,H8,W8)
         device = fmap_anchor.device
         full_visited = torch.zeros((T,), dtype=torch.bool, device=device)
 
@@ -474,13 +469,13 @@ class Net(nn.Module):
             if ii == 0:
                 flows8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 visconfs8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                fmaps2 = self.get_fmaps(images_[:,ara].reshape(-1,3,H_pad,W_pad), B, S, sw, is_training, nograd_backbone).reshape(B,S,C,H8,W8)
+                fmaps2 = self.get_fmaps(images_[:,ara].reshape(-1,3,H_pad,W_pad), B, S, sw, is_training).reshape(B,S,C,H8,W8)
             else:
                 # import pdb; pdb.set_trace()
                 flows8 = torch.cat([flows8[:,stride:stride+S//2], flows8[:,stride+S//2-1:stride+S//2].repeat(1,S//2,1,1,1)], dim=1)
                 visconfs8 = torch.cat([visconfs8[:,stride:stride+S//2], visconfs8[:,stride+S//2-1:stride+S//2].repeat(1,S//2,1,1,1)], dim=1)
                 fmaps2 = torch.cat([fmaps2[:,stride:stride+S//2], 
-                                    self.get_fmaps(images_[:,np.arange(ind+S//2,ind+S)].reshape(-1,3,H_pad,W_pad), B, S//2, sw, is_training, nograd_backbone).reshape(B,S//2,C,H8,W8)], dim=1)
+                                    self.get_fmaps(images_[:,np.arange(ind+S//2,ind+S)].reshape(-1,3,H_pad,W_pad), B, S//2, sw, is_training).reshape(B,S//2,C,H8,W8)], dim=1)
             
             flows8 = flows8.reshape(B*S,2,H_pad//8,W_pad//8).detach()
             visconfs8 = visconfs8.reshape(B*S,2,H_pad//8,W_pad//8).detach()
@@ -526,7 +521,7 @@ class Net(nn.Module):
             full_visconfs = full_visconfs[:,:T_bak]
             # print('full_flows trim', full_flows.shape)
             
-        return full_flows, full_visconfs, all_flow_preds, all_visconf_preds#, bak_flows8
+        return full_flows, full_visconfs, all_flow_preds, all_visconf_preds
         
     def forward_window(self, fmap1_single, fmaps2, visconfs8, iters=None, flowfeat=None, flows8=None, sw=None, is_training=False):
         B,S,C,H8,W8 = fmaps2.shape
@@ -536,13 +531,8 @@ class Net(nn.Module):
         flow_predictions = []
         visconf_predictions = []
 
-        # print('fmap1_single', fmap1_single.shape)
-        # print('fmaps2', fmaps2.shape)
-
         fmap1 = fmap1_single.unsqueeze(1).repeat(1,S,1,1,1) # B,S,C,H,W
-        # print('fmap1', fmap1.shape)
         fmap1 = fmap1.reshape(B*(S),C,H8,W8).contiguous()
-        # print('fmap1', fmap1.shape)
 
         fmap2 = fmaps2.reshape(B*(S),C,H8,W8).contiguous()
 
@@ -624,7 +614,7 @@ class Net(nn.Module):
             visconf_up = self.upsample_data(visconfs8, weight_update)
             visconf_predictions.append(visconf_up)
             
-        return flow_predictions, visconf_predictions, flows8, visconfs8, flowfeat#, bak_flows8
+        return flow_predictions, visconf_predictions, flows8, visconfs8, flowfeat
 
     
 
