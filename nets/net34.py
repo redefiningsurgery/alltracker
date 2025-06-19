@@ -13,7 +13,6 @@ class Net(nn.Module):
     def __init__(
             self,
             seqlen,
-            noise_level=0,
             use_attn=True,
             use_mixer=False,
             use_conv=False,
@@ -42,7 +41,6 @@ class Net(nn.Module):
         self.dim = dim
         self.hdim = hdim
 
-        self.noise_level = noise_level
         self.no_time = no_time
         self.no_space = no_space
         self.final_space = final_space
@@ -310,13 +308,6 @@ class Net(nn.Module):
             full_flows8 = torch.zeros((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
             full_visconfs8 = torch.zeros((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
 
-            if is_training and self.noise_level and np.random.rand() < 0.1:
-                # full_flows8 = 2.0*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('flows8 += randn4, const on time')
-                # full_flows8 = float(self.noise_level)*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('noise const on time')
-                full_flows8 += np.random.rand()*float(self.noise_level)*torch.randn((B,1,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-
             if self.use_feats8:
                 full_feats8 = torch.zeros((B,T,C2,H_pad//8,W_pad//8), dtype=dtype, device=device)
             visits = np.zeros((T))
@@ -384,13 +375,6 @@ class Net(nn.Module):
             flows8 = torch.zeros((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
             visconfs8 = torch.zeros((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
 
-            if is_training and self.noise_level and np.random.rand() < 0.1:
-                # full_flows8 = 2.0*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('flows8 += randn4, const on time')
-                # full_flows8 = float(self.noise_level)*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('noise on flow too')
-                flows8 += np.random.rand()*float(self.noise_level)*torch.randn((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-            
             flow_predictions, visconf_predictions, flows8, visconfs8, feats8 = self.forward_window(
                 fmap_anchor, fmaps[:,1:2], visconfs8, iters=iters, flowfeat=None, flows8=flows8,
                 is_training=is_training)
@@ -451,13 +435,6 @@ class Net(nn.Module):
             
             flows8 = torch.zeros((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
             visconfs8 = torch.zeros((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-
-            if is_training and self.noise_level and np.random.rand() < 0.1:
-                # full_flows8 = 2.0*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('flows8 += randn4, const on time')
-                # full_flows8 = float(self.noise_level)*torch.randn((B,T,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
-                # print('noise on flow too')
-                flows8 += np.random.rand()*float(self.noise_level)*torch.randn((B,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 
             fmap_anchor = fmaps[:,0]
             
@@ -498,8 +475,6 @@ class Net(nn.Module):
                 flows8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 visconfs8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 fmaps2 = self.get_fmaps(images_[:,ara].reshape(-1,3,H_pad,W_pad), B, S, sw, is_training, nograd_backbone).reshape(B,S,C,H8,W8)
-                if is_training and self.noise_level and np.random.rand() < 0.1:
-                    flows8 += np.random.rand()*float(self.noise_level)*torch.randn((B,1,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
             else:
                 # import pdb; pdb.set_trace()
                 flows8 = torch.cat([flows8[:,stride:stride+S//2], flows8[:,stride+S//2-1:stride+S//2].repeat(1,S//2,1,1,1)], dim=1)
