@@ -28,7 +28,6 @@ class Net(nn.Module):
             no_split=False,
             no_ctx=False,
             full_split=False,
-            half_corr=False,
             corr_levels=5,
             corr_radius=4,
             num_blocks=3,
@@ -58,7 +57,6 @@ class Net(nn.Module):
         self.no_split = no_split
         self.no_ctx = no_ctx
         self.full_split = full_split
-        self.half_corr = half_corr
 
         if use_basicencoder:
             if self.full_split:
@@ -538,8 +536,7 @@ class Net(nn.Module):
 
         visconfs8 = visconfs8.reshape(B*(S),2,H8,W8).contiguous()
 
-        if not self.half_corr:
-            corr_fn = CorrBlock(fmap1, fmap2, self.corr_levels, self.corr_radius)
+        corr_fn = CorrBlock(fmap1, fmap2, self.corr_levels, self.corr_radius)
 
         coords1 = self.coords_grid(B*(S), H8, W8, device=fmap1.device, dtype=dtype)
 
@@ -550,12 +547,6 @@ class Net(nn.Module):
                 _, ctxfeat = torch.split(fmap1, [self.dim, self.dim], dim=1)
             else:
                 flowfeat, ctxfeat = torch.split(fmap1, [self.dim, self.dim], dim=1)
-
-            if self.half_corr:
-                # we discard the cnet output for fmap2
-                # in general maybe we shouldn't compute it, if half_corr pays off
-                flowfeat2, _ = torch.split(fmap2, [self.dim, self.dim], dim=1)
-                corr_fn = CorrBlock(flowfeat, flowfeat2, self.corr_levels, self.corr_radius)
                 
         # add pos emb to ctxfeat (and not flowfeat), since ctxfeat is untouched across iters
         time_emb = self.fetch_time_embed(S, ctxfeat.dtype, is_training).reshape(1,S,self.dim,1,1).repeat(B,1,1,1,1)
