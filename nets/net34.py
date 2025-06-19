@@ -118,6 +118,7 @@ class Net(nn.Module):
 
         time_line = torch.linspace(0, seqlen-1, seqlen).reshape(1, seqlen, 1)
         self.register_buffer("time_emb", utils.misc.get_1d_sincos_pos_embed_from_grid(self.dim, time_line[0])) # 1,S,C
+
         
     def fetch_time_embed(self, t, dtype, is_training=False):
         S = self.time_emb.shape[1]
@@ -250,6 +251,12 @@ class Net(nn.Module):
         device = images.device
         dtype = images.dtype
         # print('images', images.shape, 'device', device)
+
+        # images are in [0,255]
+        mean = torch.as_tensor([0.485, 0.456, 0.406], device=device).reshape(1,1,3,1,1).to(images.dtype)
+        std = torch.as_tensor([0.229, 0.224, 0.225], device=device).reshape(1,1,3,1,1).to(images.dtype)
+        images = images / 255.0
+        images = (images - mean)/std
 
         T_bak = T
         if stride is not None:

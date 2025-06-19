@@ -64,16 +64,9 @@ def forward_video(rgbs, model, args):
     device = rgbs.device
     assert(B==1)
 
-    rgbs_bak = rgbs.clone()
-
     grid_xy = utils.basic.gridcloud2d(1, H, W, norm=False, device='cuda:0').float() # 1,H*W,2
     grid_xy = grid_xy.permute(0,2,1).reshape(1,1,2,H,W) # 1,1,2,H,W
 
-    mean = torch.as_tensor([0.485, 0.456, 0.406], device=device).reshape(1,1,3,1,1).to(rgbs.dtype)
-    std = torch.as_tensor([0.229, 0.224, 0.225], device=device).reshape(1,1,3,1,1).to(rgbs.dtype)
-    rgbs = rgbs / 255.0
-    rgbs = (rgbs - mean)/std
-    
     torch.cuda.empty_cache()
     print('starting forward...')
     f_start_time = time.time()
@@ -105,7 +98,7 @@ def forward_video(rgbs, model, args):
     utils.basic.mkdir(temp_dir)
     vis = []
     for ti in range(T):
-        pt_vis = draw_pts(rgbs_bak[0,ti].permute(1,2,0).detach().cpu().byte().numpy().copy(),
+        pt_vis = draw_pts(rgbs[0,ti].permute(1,2,0).detach().cpu().byte().numpy().copy(),
                           trajs_e[0,ti].detach().cpu().numpy(),
                           visconfs_e[0,ti,:,0].detach().cpu().numpy(),
                           visconfs_e[0,ti,:,1].detach().cpu().numpy(),
