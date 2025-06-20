@@ -1,13 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# import utils.samp
 import utils.misc
 import numpy as np
 
 from nets.blocks import CNBlockConfig, ConvNeXt, conv1x1, RelUpdateBlock, InputPadder, CorrBlock, BasicEncoder
-
-# init mostly from raft82 in alltrack
 
 class Net(nn.Module):
     def __init__(
@@ -24,7 +21,6 @@ class Net(nn.Module):
             use_feats8=False,
             no_time=False,
             no_space=False,
-            final_space=False,
             no_split=False,
             no_ctx=False,
             full_split=False,
@@ -42,7 +38,6 @@ class Net(nn.Module):
 
         self.no_time = no_time
         self.no_space = no_space
-        self.final_space = final_space
         self.seqlen = seqlen
         self.corr_levels = corr_levels
         self.corr_radius = corr_radius
@@ -79,8 +74,6 @@ class Net(nn.Module):
             else:
                 self.dot_conv = conv1x1(384, dim*2)
             
-        # # conv for iter 0 results
-        # self.init_conv = conv3x3(2 * dim, 2 * dim)
         self.upsample_weight = nn.Sequential(
             # convex combination of 3x3 patches
             nn.Conv2d(dim, dim * 2, 3, padding=1),
@@ -109,7 +102,7 @@ class Net(nn.Module):
             
         self.update_block = RelUpdateBlock(self.corr_channel, self.num_blocks, cdim=dim, hdim=hdim, pdim=self.pdim,
                                            use_attn=use_attn, use_mixer=use_mixer, use_conv=use_conv, use_convb=use_convb,
-                                           use_layer_scale=True, no_time=no_time, no_space=no_space, final_space=final_space,
+                                           use_layer_scale=True, no_time=no_time, no_space=no_space,
                                            no_ctx=no_ctx)
 
         time_line = torch.linspace(0, seqlen-1, seqlen).reshape(1, seqlen, 1)
@@ -118,8 +111,6 @@ class Net(nn.Module):
         
     def fetch_time_embed(self, t, dtype, is_training=False):
         S = self.time_emb.shape[1]
-        # print('fetching time_embed for t', t, '(we have %d)' % (S))
-        # print('self.time_emb', self.time_emb.shape)
         if t == S:
             return self.time_emb.to(dtype)
         elif t==1:
@@ -164,8 +155,6 @@ class Net(nn.Module):
         indices = None
         if T > 2:
             step = S // 2 if stride is None else stride
-            # starts = list(range(step,max(T,S),step))
-            # indices = [mid-step for mid in mids]
             indices = []
             start = 0
             while start + S < T:
@@ -173,8 +162,6 @@ class Net(nn.Module):
                 start += step
             indices.append(start)
             Tpad = indices[-1]+S-T
-            # print(indices, Tpad)
-            # import pdb; pdb.set_trace()
             if pad:
                 if is_training:
                     assert Tpad == 0
@@ -241,7 +228,6 @@ class Net(nn.Module):
         S = self.seqlen
         device = images.device
         dtype = images.dtype
-        # print('images', images.shape, 'device', device)
 
         # images are in [0,255]
         mean = torch.as_tensor([0.485, 0.456, 0.406], device=device).reshape(1,1,3,1,1).to(images.dtype)
@@ -255,7 +241,6 @@ class Net(nn.Module):
         else:
             pad = True
         images, T, indices = self.get_T_padded_images(images, T, S, is_training, stride=stride, pad=pad)
-        # print('indices', indices)
 
         images = images.contiguous()
         images_ = images.reshape(B*T,3,H,W)
@@ -270,19 +255,9 @@ class Net(nn.Module):
             C2 = C
 
         fmaps = self.get_fmaps(images_, B, T, sw, is_training).reshape(B,T,C,H8,W8)
-        # print('fmaps_', fmaps_.shape)
         device = fmaps.device
 
-        # if sw is not None and sw.save_this:
-        #     sw.summ_feat('1_model/fmap_dc', fmaps_[0:1])
-
-        # fmaps = fmaps_.reshape(B,T,C,H8,W8)
-        # del fmaps_
         fmap_anchor = fmaps[:,0]
-
-        # if not is_training:
-        #     del images
-        #     del images_
 
         if T<=2 or is_training:
             # note: collecting preds can get expensive on a long video
@@ -312,7 +287,6 @@ class Net(nn.Module):
                     next_ara = np.arange(next_ind,next_ind+S)
                 
                 # print("torch.cuda.memory_allocated: %.1fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024), 'ara', ara)
-                # print('ara', ara)
                 fmaps2 = fmaps[:,ara]
                 flows8 = full_flows8[:,ara].reshape(B*(S),2,H_pad//8,W_pad//8).detach()
                 visconfs8 = full_visconfs8[:,ara].reshape(B*(S),2,H_pad//8,W_pad//8).detach()
@@ -335,7 +309,6 @@ class Net(nn.Module):
                     flow_predictions[i] = padder.unpad(flow_predictions[i])
                     unpad_flow_predictions.append(flow_predictions[i].reshape(B,S,2,H,W))
                     visconf_predictions[i] = padder.unpad(torch.sigmoid(visconf_predictions[i]))
-                    # print('visconf_predictions[%d]' % i, visconf_predictions[i].shape)
                     unpad_visconf_predictions.append(visconf_predictions[i].reshape(B,S,2,H,W))
 
                 full_flows[:,ara] = unpad_flow_predictions[-1].reshape(B,S,2,H,W)
@@ -382,11 +355,8 @@ class Net(nn.Module):
             full_visconfs = all_visconf_preds[-1].reshape(B,2,H,W)
                 
         if (not is_training) and (T > 2):
-            # print('full_flows', full_flows.shape)
-            # print('T_bak', T_bak)
             full_flows = full_flows[:,:T_bak]
             full_visconfs = full_visconfs[:,:T_bak]
-            # print('full_flows trim', full_flows.shape)
             
         return full_flows, full_visconfs, all_flow_preds, all_visconf_preds
     
@@ -395,12 +365,10 @@ class Net(nn.Module):
         S = self.seqlen if window_len is None else window_len
         device = images.device
         dtype = images.dtype
-        # print('images', images.shape, 'device', device)
         stride = S // 2 if stride is None else stride
 
         T_bak = T
         images, T, indices = self.get_T_padded_images(images, T, S, is_training, stride)
-        # print('indices', indices)
         assert stride <= S // 2
 
         images = images.contiguous()
@@ -462,14 +430,12 @@ class Net(nn.Module):
         full_visited = torch.zeros((T,), dtype=torch.bool, device=device)
 
         for ii, ind in enumerate(indices):
-            # print('ara', ara)
             ara = np.arange(ind,ind+S)
             if ii == 0:
                 flows8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 visconfs8 = torch.zeros((B,S,2,H_pad//8,W_pad//8), dtype=dtype, device=device)
                 fmaps2 = self.get_fmaps(images_[:,ara].reshape(-1,3,H_pad,W_pad), B, S, sw, is_training).reshape(B,S,C,H8,W8)
             else:
-                # import pdb; pdb.set_trace()
                 flows8 = torch.cat([flows8[:,stride:stride+S//2], flows8[:,stride+S//2-1:stride+S//2].repeat(1,S//2,1,1,1)], dim=1)
                 visconfs8 = torch.cat([visconfs8[:,stride:stride+S//2], visconfs8[:,stride+S//2-1:stride+S//2].repeat(1,S//2,1,1,1)], dim=1)
                 fmaps2 = torch.cat([fmaps2[:,stride:stride+S//2], 
@@ -478,8 +444,6 @@ class Net(nn.Module):
             flows8 = flows8.reshape(B*S,2,H_pad//8,W_pad//8).detach()
             visconfs8 = visconfs8.reshape(B*S,2,H_pad//8,W_pad//8).detach()
             
-            # print("torch.cuda.memory_allocated: %.1fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024), 'ara', ara)
-            # print('ara', ara)
             flow_predictions, visconf_predictions, flows8, visconfs8, _ = self.forward_window(
                 fmap_anchor, fmaps2, visconfs8, iters=iters, flowfeat=None, flows8=flows8,
                 is_training=is_training)
@@ -490,7 +454,6 @@ class Net(nn.Module):
                 flow_predictions[i] = padder.unpad(flow_predictions[i])
                 unpad_flow_predictions.append(flow_predictions[i].reshape(B,S,2,H,W))
                 visconf_predictions[i] = padder.unpad(torch.sigmoid(visconf_predictions[i]))
-                # print('visconf_predictions[%d]' % i, visconf_predictions[i].shape)
                 unpad_visconf_predictions.append(visconf_predictions[i].reshape(B,S,2,H,W))
 
             current_visiting = torch.zeros((T,), dtype=torch.bool, device=device)
@@ -513,11 +476,8 @@ class Net(nn.Module):
             visconfs8 = visconfs8.reshape(B,S,2,H_pad//8,W_pad//8)
                 
         if not is_training:
-            # print('full_flows', full_flows.shape)
-            # print('T_bak', T_bak)
             full_flows = full_flows[:,:T_bak]
             full_visconfs = full_visconfs[:,:T_bak]
-            # print('full_flows trim', full_flows.shape)
             
         return full_flows, full_visconfs, all_flow_preds, all_visconf_preds
         

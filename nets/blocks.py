@@ -100,7 +100,6 @@ class CorrBlock:
         if dilation is None:
             dilation = torch.ones(batch, 1, h1, w1, device=coords.device)
 
-        # print(dilation.max(), dilation.mean(), dilation.min())
         out_pyramid = []
         for i in range(self.num_levels):
             corr = self.corr_pyramid[i]
@@ -230,9 +229,6 @@ class CNBlock1d(nn.Module):
             assert S is not None
             BS,C,H,W = input.shape
             B = BS//S
-
-            # if S<7:
-            #     return input
 
             input = einops.rearrange(input, '(b s) c h w -> (b h w) c s', b=B, s=S, c=C, h=H, w=W)
 
@@ -417,27 +413,17 @@ class ConvNeXt(nn.Module):
             # pretrained_dict = convnext_base(weights=ConvNeXt_Base_Weights.DEFAULT).state_dict()
             model_dict = self.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-            # if self.input_dim == 6:
-            #     for k, v in pretrained_dict.items():
-            #         if k == 'conv1.weight':
-            #             pretrained_dict[k] = torch.cat((v, v), dim=1)
-
-            # del pretrained_dict['features.4.1.weight']
 
             for k, v in pretrained_dict.items():
                 if k == 'features.4.1.weight': # this is the layer normally in charge of 2x2 downsampling
                     # convert to 3x3 filter
                     pretrained_dict[k] = F.interpolate(v, (3, 3), mode='bicubic', align_corners=True) * (4/9.0)
-                    
-                    # print('v0', v[0,0])
-                    # print('d0', pretrained_dict[k][0,0])
             
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict, strict=False)
         
 
     def _forward_impl(self, x: Tensor) -> Tensor:
-        # with torch.no_grad():
         x = self.features(x)
         # x = self.final_conv(x)
         return x
@@ -704,7 +690,6 @@ class BasicEncoder(nn.Module):
     def forward(self, x):
         _, _, H, W = x.shape
 
-        # with torch.no_grad():
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu1(x)
@@ -1304,7 +1289,7 @@ class CleanUpdateBlock(nn.Module):
         return flowfeat
 
 class RelUpdateBlock(nn.Module):
-    def __init__(self, corr_channel, num_blocks, cdim=128, hdim=128, pdim=4, use_attn=True, use_mixer=False, use_conv=False, use_convb=False, use_layer_scale=True, no_time=False, no_space=False, final_space=False, no_ctx=False):
+    def __init__(self, corr_channel, num_blocks, cdim=128, hdim=128, pdim=4, use_attn=True, use_mixer=False, use_conv=False, use_convb=False, use_layer_scale=True, no_time=False, no_space=False, no_ctx=False):
         super(RelUpdateBlock, self).__init__()
         self.motion_encoder = BasicMotionEncoder(corr_channel, dim=hdim, pdim=pdim) # B,hdim,H,W
         self.no_ctx = no_ctx
@@ -1318,8 +1303,6 @@ class RelUpdateBlock(nn.Module):
                 self.refine.append(CNBlock1d(hdim, hdim, use_attn=use_attn, use_mixer=use_mixer, use_conv=use_conv, use_convb=use_convb, use_layer_scale=use_layer_scale))
             if not no_space:
                 self.refine.append(CNBlock2d(hdim, hdim, use_layer_scale=use_layer_scale))
-        if final_space:
-            self.refine.append(CNBlock2d(hdim, hdim, use_layer_scale=use_layer_scale))
         self.refine = nn.ModuleList(self.refine)
         self.final_conv = conv1x1(hdim, cdim)
 
