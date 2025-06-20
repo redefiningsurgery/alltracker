@@ -931,7 +931,7 @@ if __name__ == "__main__":
     init_dir = ''
 
     # this file is for training alltracker in "stage 2", 
-    # which involves mixing flow datasets with point tracking datasets
+    # which involves mixing flow datasets with point tracking datasets.
     
     from nets.net34 import Net; exp = 'stage2' # clean up for release
     
@@ -942,6 +942,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_scheduler", default=False, action='store_true')
     parser.add_argument("--load_step", default=False, action='store_true')
     parser.add_argument("--ckpt_dir", type=str, default='./checkpoints')
+    parser.add_argument("--data_dir", type=str, default='/data')
     parser.add_argument("--batch_size_2", type=int, default=8)
     parser.add_argument("--batch_size_24", type=int, default=1)
     parser.add_argument("--batch_size_56", type=int, default=1)

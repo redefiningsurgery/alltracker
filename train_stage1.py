@@ -1,14 +1,9 @@
 import os
 import random
 import torch
-import signal
-import socket
-import sys
-import json
 import torch.nn.functional as F
 import numpy as np
 import argparse
-from torch.cuda.amp import GradScaler
 from lightning_fabric import Fabric 
 import utils.loss
 import utils.data
@@ -19,7 +14,6 @@ from tensorboardX import SummaryWriter
 import datetime
 import time
 from nets.blocks import bilinear_sampler
-
 
 torch.set_float32_matmul_precision('medium')
 
@@ -39,16 +33,8 @@ def get_parameter_names(model, forbidden_layer_types):
 
 def get_sparse_dataset(args, crop_size, N, T, random_first=False, version='au'):
     from datasets import kubric_movif_dataset_bak
-    import socket
-    host = socket.gethostname()
-    if 'orion' in host:
-        data_dir = '/orion/group'
-    elif '129-146-44-43' in host:
-        data_dir = '../datasets'
-    else:
-        data_dir = '/data/datasets/tag'
     dataset = kubric_movif_dataset_bak.KubricMovifDataset(
-        data_root=os.path.join(data_dir, 'kubric_points/export_%s' % version),
+        data_root=os.path.join(args.data_dir, 'kubric_points/export_%s' % version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
@@ -370,15 +356,14 @@ def run(model, args):
         ranks_24 = [4,5,6,7]
         log_ranks = [0,4]
     else:
-        host = socket.gethostname()
-        assert 'orion' in host # debug
         ranks_24 = [0]
         ranks_56 = []
         log_ranks = [0]
+        print('assuming we are debugging with 1 gpu...')
 
     if fabric.global_rank in ranks_56:
         sparse_dataset56, sparse_dataset_names56 = get_sparse_dataset(
-            args, crop_size=args.crop_size_56, T=56, N=args.traj_per_sample_56, random_first=False, version='br')
+            args, crop_size=args.crop_size_56, T=56, N=args.traj_per_sample_56, random_first=False, version='bt')
         sparse_loader56 = torch.utils.data.DataLoader(
             sparse_dataset56,
             batch_size=args.batch_size,
@@ -447,9 +432,6 @@ def run(model, args):
 
     model, optimizer = fabric.setup(model, optimizer, move_to_device=False)
     model.train()
-
-    # if args.mixed_precision:
-    #     scaler = GradScaler(enabled=False)
 
     while global_step < args.max_steps+10:
         global_step += 1
@@ -560,7 +542,7 @@ if __name__ == "__main__":
 
     # this file is for training alltracker in "stage 1",
     # which involves kubric-only training.
-    # this is also the file to execute all ablations
+    # this is also the file to execute all ablations.
     
     from nets.net31 import Net; exp = 'stage1' # clean up for release
     
@@ -571,6 +553,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_scheduler", default=False, action='store_true')
     parser.add_argument("--load_step", default=False, action='store_true')
     parser.add_argument("--ckpt_dir", type=str, default='./checkpoints')
+    parser.add_argument("--data_dir", type=str, default='/data')
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_nodes", type=int, default=1)
     parser.add_argument("--num_workers_24", type=int, default=2)
