@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import argparse
-import torch.optim as optim
 from lightning_fabric import Fabric 
 import utils.loss
 import utils.data
@@ -225,7 +224,7 @@ def fetch_optimizer(args, model):
     optimizer = torch.optim.AdamW(params=optimizer_grouped_parameters, lr=args.lr, weight_decay=args.wdecay)
 
     if args.use_scheduler:
-        scheduler = optim.lr_scheduler.OneCycleLR(
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
             args.lr,
             args.max_steps+100,
@@ -612,8 +611,6 @@ def forward_batch_flow(batch, model, args, sw, inference_iters, horz_flip=False,
     return total_loss, metrics
 
 
-from lightning_fabric.strategies import DDPStrategy
-
 def run(model, args):
     fabric = Fabric(
         devices="auto",
@@ -987,7 +984,6 @@ if __name__ == "__main__":
     parser.add_argument("--no_time", default=False, action='store_true')
     parser.add_argument("--no_split", default=False, action='store_true')
     parser.add_argument("--full_split", default=False, action='store_true')
-    parser.add_argument("--final_space", default=False, action='store_true')
     parser.add_argument("--use_relmotion", default=False, action='store_true')
     parser.add_argument("--use_sinrelmotion", default=False, action='store_true')
     parser.add_argument("--num_blocks", type=int, default=3)
@@ -995,8 +991,8 @@ if __name__ == "__main__":
     parser.add_argument("--corr_levels", type=int, default=5)
     parser.add_argument("--dim", type=int, default=128)
     parser.add_argument("--hdim", type=int, default=128)
-    parser.add_argument("--horz_flip_2", default=False)#, action='store_true')
-    parser.add_argument("--vert_flip_2", default=False)#, action='store_true')
+    parser.add_argument("--horz_flip_2", default=False, action='store_true')
+    parser.add_argument("--vert_flip_2", default=False, action='store_true')
     parser.add_argument("--shuffle_frames", default=False, action='store_true')
 
     args = parser.parse_args()
@@ -1018,7 +1014,6 @@ if __name__ == "__main__":
         use_basicencoder=args.use_basicencoder,
         no_space=args.no_space,
         no_time=args.no_time,
-        final_space=args.final_space,
         use_relmotion=args.use_relmotion,
         use_sinrelmotion=args.use_sinrelmotion,
         no_split=args.no_split,
