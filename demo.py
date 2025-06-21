@@ -133,10 +133,9 @@ def run(model, args):
     
     global_step = 0
     
-    load_dir = '%s/%s' % (args.ckpt_dir, args.init_dir)
     _ = utils.saveload.load(
         None,
-        load_dir,
+        args.ckpt_init,
         model,
         optimizer=None,
         scheduler=None,
@@ -145,7 +144,7 @@ def run(model, args):
         verbose=False,
         weights_only=False,
     )
-    print('loaded weights from', load_dir)
+    print('loaded weights from', args.ckpt_init)
 
     model.cuda()
     for n, p in model.named_parameters():
@@ -179,9 +178,8 @@ if __name__ == "__main__":
     torch.set_grad_enabled(False)
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ckpt_dir", type=str, default='checkpoints') # where checkpoints live
-    parser.add_argument("--init_dir", type=str, default='reference_model') # the ckpt we want
-    parser.add_argument("--mp4_path", type=str, default='demo_video/monkey.mp4') # input video 
+    parser.add_argument("--ckpt_init", type=str, default='./checkpoints/alltracker.pth') # the ckpt we want
+    parser.add_argument("--mp4_path", type=str, default='./demo_video/monkey.mp4') # input video 
     parser.add_argument("--inference_iters", type=int, default=4) # number of inference steps per forward
     parser.add_argument("--window_len", type=int, default=16) # model hyperparam
     parser.add_argument("--subsample_rate", type=int, default=4) # vis hyp
