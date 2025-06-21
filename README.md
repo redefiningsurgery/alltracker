@@ -47,14 +47,28 @@ python demo.py
 
 ## Training code
 
-Coming soon! (After I get back from CVPR.)
+(Working on this...)
+
+Download the point tracking datasets from [[HuggingFace](https://huggingface.co/aharley/alltracker/tree/main)]
+
+There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`.	
+
+Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
+
+```
+cat ce24_flt_aa ce24_flt_ab ce24_flt_ac ce24_flt_ad ce24_flt_ae > ce24_flt.tar.gz
+```
+
+
 
 
 ## Citation
 
 If you use this code for your research, please cite:
 
-**Adam W. Harley, Yang You, Xinglong Sun, Yang Zheng, Nikhil Raghuraman, Yunqi Gu, Sheldon Liang, Wen-Hsuan Chu, Achal Dave, Pavel Tokmakov, Suya You, Rares Ambrus, Katerina Fragkiadaki, Leonidas J. Guibas. AllTracker: Efficient Dense Point Tracking at High Resolution. arXiv 2025.**
+```
+Adam W. Harley, Yang You, Xinglong Sun, Yang Zheng, Nikhil Raghuraman, Yunqi Gu, Sheldon Liang, Wen-Hsuan Chu, Achal Dave, Pavel Tokmakov, Suya You, Rares Ambrus, Katerina Fragkiadaki, Leonidas J. Guibas. AllTracker: Efficient Dense Point Tracking at High Resolution. arXiv 2025.
+```
 
 Bibtex:
 ```
