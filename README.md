@@ -4,7 +4,7 @@
 
 <img src='https://alltracker.github.io/images/alltracker_preview.jpeg'>
 
-*AllTracker is a point tracking model which is fast and accurate, and it gets more accurate at higher resolutions.*
+**AllTracker is a point tracking model which is faster and more accurate than other similar models, while also producing dense output at high resolution (where other models typically produce OOM errors).**
 
 AllTracker estimates long-range point tracks by way of estimating the flow field between a query frame and every other frame of a video. Unlike existing point tracking methods, our approach delivers high-resolution and dense (all-pixel) correspondence fields, which can be visualized as flow maps. Unlike existing optical flow methods, our approach corresponds one frame to hundreds of subsequent frames, rather than just the next frame.
 
