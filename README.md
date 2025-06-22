@@ -2,6 +2,8 @@
 
 **[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)]**
 
+<img src='https://alltracker.github.io/images/alltracker_preview.jpeg'>
+
 ## Env setup
 
 Install miniconda:
@@ -65,7 +67,7 @@ cat ce24_flt_aa ce24_flt_ab ce24_flt_ac ce24_flt_ad ce24_flt_ae > ce24_flt.tar.g
 Download the optical flow datasets from the official websites: [FlyingChairs, FlyingThings3D, Monkaa, Driving](https://lmb.informatik.uni-freiburg.de/resources/datasets) [AutoFlow](https://autoflow-google.github.io/), [SPRING](https://spring-benchmark.org/), [VIPER](https://playing-for-benchmarks.org/download/), [HD1K](http://hci-benchmark.iwr.uni-heidelberg.de/), [KITTI](https://www.cvlibs.net/datasets/kitti/eval_scene_flow.php?benchmark=flow), [TARTANAIR](https://theairlab.org/tartanair-dataset/). 
 
 
-# Stage 1
+### Stage 1
 
 Stage 1 is to train the model for 200k steps on Kubric. 
 
@@ -73,10 +75,9 @@ Stage 1 is to train the model for 200k steps on Kubric.
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage1.py  --mixed_precision --lr 5e-4 --max_steps=200000 --data_dir /data --exp "stage1abc" 
 ```
 
-This should produce a tensorboard log in `./logs_train/`, and checkpoints in `./checkponts/`, in folder names similar to "64Ai4i3_5e-4m_stage1abc_1318". (The 4-digit string at the end is a timecode indicating when the run began, to help make the filepaths unique.)
+This should produce a tensorboard log in `./logs_train/`, and checkpoints in `./checkpoints/`, in folder names similar to "64Ai4i3_5e-4m_stage1abc_1318". (The 4-digit string at the end is a timecode indicating when the run began, to help make the filepaths unique.)
 
-
-# Stage 2
+### Stage 2
 
 Stage 2 is to train the model for 400k steps on a mix of point tracking datasets and optical flow datasets. This stage initializes from the output of Stage 1.
 
