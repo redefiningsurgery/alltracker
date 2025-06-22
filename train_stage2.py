@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 from lightning_fabric import Fabric 
 import utils.loss
+import utils.samp
 import utils.data
 import utils.improc
 import utils.misc
@@ -82,12 +83,8 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
     )
     
     from datasets import dynrep_dataset
-    if 'orion' in host:
-        data_dir = os.path.join(data_dir, 'dynamicreplica')
-    else:
-        data_dir = os.path.join(data_dir, 'dynrep')
     dyn_dataset = dynrep_dataset.DynamicReplicaDataset(
-        args.data_dir, 
+        os.path.join(args.data_dir, 'dynamicreplica'), 
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
