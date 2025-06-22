@@ -57,10 +57,8 @@ def collate_fn_train(batch):
             trajs=trajs,
             visibs=visibs,
             valids=valids,
-            hards=hards,
             seq_name=seq_name,
             dname=dname,
-            aug_video=aug_video,
         ),
         gotit,
     )

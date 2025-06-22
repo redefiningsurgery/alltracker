@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 from lightning_fabric import Fabric 
 import utils.loss
+import utils.samp
 import utils.data
 import utils.improc
 import utils.misc
@@ -32,8 +33,8 @@ def get_parameter_names(model, forbidden_layer_types):
     return result
 
 def get_sparse_dataset(args, crop_size, N, T, random_first=False, version='au'):
-    from datasets import kubric_movif_dataset_bak
-    dataset = kubric_movif_dataset_bak.KubricMovifDataset(
+    from datasets import kubric_movif_dataset
+    dataset = kubric_movif_dataset.KubricMovifDataset(
         data_root=os.path.join(args.data_dir, 'kubric_points/export_%s' % version),
         crop_size=crop_size,
         seq_len=T,
@@ -320,8 +321,7 @@ def run(model, args):
     else:
         model_name += "i%d" % (args.inference_iters_24)
         model_name += "i%d" % (args.inference_iters_56)
-    lrn = "%.1e" % args.lr # e.g., 5.0e-04
-    lrn = lrn[0] + lrn[3:5] + lrn[-1] # e.g., 5e-4
+    lrn = utils.basic.get_lr_str(args.lr) # e.g., 5e-4
     model_name += "_%s" % lrn
     if args.mixed_precision:
         model_name += "m"
@@ -401,7 +401,7 @@ def run(model, args):
     optimizer, scheduler = fetch_optimizer(args, model)
 
     if fabric.global_rank in log_ranks:
-        log_dir = './logs_train_18'
+        log_dir = './logs_train'
         pools_t = {}
         for dname in dataset_names:
             if not (dname in pools_t):
@@ -544,7 +544,7 @@ if __name__ == "__main__":
     # which involves kubric-only training.
     # this is also the file to execute all ablations.
     
-    from nets.net31 import Net; exp = 'stage1' # clean up for release
+    from nets.net34 import Net; exp = 'stage1' # clean up for release
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp", default=exp)
@@ -592,7 +592,6 @@ if __name__ == "__main__":
     parser.add_argument("--no_split", default=False, action='store_true')
     parser.add_argument("--no_ctx", default=False, action='store_true')
     parser.add_argument("--full_split", default=False, action='store_true')
-    parser.add_argument("--half_corr", default=False, action='store_true')
     parser.add_argument("--use_sinmotion", default=False, action='store_true')
     parser.add_argument("--use_relmotion", default=False, action='store_true')
     parser.add_argument("--use_sinrelmotion", default=False, action='store_true')
@@ -628,7 +627,6 @@ if __name__ == "__main__":
         no_split=args.no_split,
         no_ctx=args.no_ctx,
         full_split=args.full_split,
-        half_corr=args.half_corr,
         num_blocks=args.num_blocks,
         corr_radius=args.corr_radius,
         corr_levels=args.corr_levels,

@@ -76,7 +76,6 @@ class PointDataset(torch.utils.data.Dataset):
             trajs=torch.zeros((S, self.traj_per_sample, 2)),
             visibs=torch.zeros((S, self.traj_per_sample)),
             valids=torch.zeros((S, self.traj_per_sample)),
-            hards=torch.zeros((S, self.traj_per_sample)),
         )
         return sample, gotit
 

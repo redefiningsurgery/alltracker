@@ -659,8 +659,7 @@ def run(model, args):
     model_name += "n%d" % (args.noise_level)
     if args.shuffle_frames:
         model_name += "s"
-    lrn = "%.1e" % args.lr # e.g., 5.0e-04
-    lrn = lrn[0] + lrn[3:5] + lrn[-1] # e.g., 5e-4
+    lrn = utils.basic.get_lr_str(args.lr) # e.g., 5e-4
     model_name += "_%s" % lrn
     if args.mixed_precision:
         model_name += "m"
@@ -765,7 +764,7 @@ def run(model, args):
     optimizer, scheduler = fetch_optimizer(args, model)
 
     if fabric.global_rank in log_ranks:
-        log_dir = './logs_train_22'
+        log_dir = './logs_train'
         pools_t = {}
         for dname in dataset_names:
             if not (dname in pools_t):
