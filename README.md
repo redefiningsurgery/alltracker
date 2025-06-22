@@ -4,6 +4,9 @@
 
 <img src='https://alltracker.github.io/images/alltracker_preview.jpeg'>
 
+AllTracker estimates long-range point tracks by way of estimating the flow field between a query frame and every other frame of a video. Unlike existing point tracking methods, our approach delivers high-resolution and dense (all-pixel) correspondence fields, which can be visualized as flow maps. Unlike existing optical flow methods, our approach corresponds one frame to hundreds of subsequent frames, rather than just the next frame.
+
+
 ## Env setup
 
 Install miniconda:
@@ -47,9 +50,11 @@ python demo.py
 ```
 
 
-## Training code
+## Training
 
 (Working on this...)
+
+### Data prep
 
 Download Kubric from [here].
 
