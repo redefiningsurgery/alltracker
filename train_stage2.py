@@ -656,7 +656,6 @@ def run(model, args):
     model_name += "i%d" % (args.inference_iters_2)
     model_name += "i%d" % (args.inference_iters_24)
     model_name += "i%d" % (args.inference_iters_56)
-    model_name += "n%d" % (args.noise_level)
     if args.shuffle_frames:
         model_name += "s"
     lrn = utils.basic.get_lr_str(args.lr) # e.g., 5e-4
@@ -679,16 +678,10 @@ def run(model, args):
 
     # logic to distribute different-shaped samples across gpus
     if fabric.world_size==2:
-        if args.only_s24:
-            ranks_2 = []
-            ranks_24 = [0,1]
-            ranks_56 = []
-            log_ranks = [0]
-        else:
-            ranks_2 = []
-            ranks_24 = [0]
-            ranks_56 = [1]
-            log_ranks = [0,1]
+        ranks_2 = []
+        ranks_24 = [0]
+        ranks_56 = [1]
+        log_ranks = [0,1]
     elif fabric.world_size==4:
         ranks_2 = [0]
         ranks_24 = [1,2]
@@ -973,13 +966,11 @@ if __name__ == "__main__":
     parser.add_argument("--debug", default=False, action='store_true')
     parser.add_argument("--random_seq_len", default=False, action='store_true')
     parser.add_argument("--no_attn", default=False, action='store_true')
-    parser.add_argument("--noise_level", type=int, default=0)
     parser.add_argument("--no_short", default=False, action='store_true')
     parser.add_argument("--use_mixer", default=False, action='store_true')
     parser.add_argument("--use_conv", default=False, action='store_true')
     parser.add_argument("--use_convb", default=False, action='store_true')
     parser.add_argument("--use_basicencoder", default=False, action='store_true')
-    parser.add_argument("--only_s24", default=False, action='store_true')
     parser.add_argument("--no_space", default=False, action='store_true')
     parser.add_argument("--no_time", default=False, action='store_true')
     parser.add_argument("--no_split", default=False, action='store_true')
@@ -1006,7 +997,6 @@ if __name__ == "__main__":
         16,
         dim=args.dim,
         hdim=args.hdim,
-        noise_level=args.noise_level,
         use_attn=(not args.no_attn),
         use_mixer=args.use_mixer,
         use_conv=args.use_conv,
