@@ -79,7 +79,7 @@ Download the optical flow datasets from the official websites: [FlyingChairs, Fl
 Stage 1 is to train the model for 200k steps on Kubric. 
 
 ```
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage1.py  --mixed_precision --lr 5e-4 --max_steps=200000 --data_dir /data --exp "stage1abc" 
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage1.py  --mixed_precision --lr 5e-4 --max_steps 200000 --data_dir /data --exp "stage1abc" 
 ```
 
 This should produce a tensorboard log in `./logs_train/`, and checkpoints in `./checkpoints/`, in folder names similar to "64Ai4i3_5e-4m_stage1abc_1318". (The 4-digit string at the end is a timecode indicating when the run began, to help make the filepaths unique.)
@@ -89,7 +89,7 @@ This should produce a tensorboard log in `./logs_train/`, and checkpoints in `./
 Stage 2 is to train the model for 400k steps on a mix of point tracking datasets and optical flow datasets. This stage initializes from the output of Stage 1.
 
 ```
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage2.py  --mixed_precision --init_dir='64Ai4i3_5e-4m_stage1abc_1318' --lr=1e-5 --max_steps=400000 --exp='stage2abc'
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage2.py  --mixed_precision --init_dir '64Ai4i3_5e-4m_stage1abc_1318' --lr 1e-5 --max_steps 400000 --exp 'stage2abc'
 
 ```
 
