@@ -2,7 +2,7 @@
 
 **[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)]**
 
-<img src='https://alltracker.github.io/images/alltracker_preview.jpeg'>
+<img src='https://alltracker.github.io/images/monkey.jpg'>
 
 **AllTracker is a point tracking model which is faster and more accurate than other similar models, while also producing dense output at high resolution (where other models typically produce OOM errors).**
 
