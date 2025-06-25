@@ -97,7 +97,7 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
     from datasets import kubric_movif_dataset
     kubric_version = 'au'
     kub_dataset = kubric_movif_dataset.KubricMovifDataset(
-        data_root=os.path.join(args.data_dir, 'kubric_points/export_%s' % kubric_version),
+        data_root=os.path.join(args.data_dir, 'kubric_%s' % kubric_version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,

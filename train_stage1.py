@@ -35,7 +35,7 @@ def get_parameter_names(model, forbidden_layer_types):
 def get_sparse_dataset(args, crop_size, N, T, random_first=False, version='au'):
     from datasets import kubric_movif_dataset
     dataset = kubric_movif_dataset.KubricMovifDataset(
-        data_root=os.path.join(args.data_dir, 'kubric_points/export_%s' % version),
+        data_root=os.path.join(args.data_dir, 'kubric_%s' % version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
