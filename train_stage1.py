@@ -380,10 +380,10 @@ def run(model, args):
         sparse_iterloader56 = iter(sparse_loader56)
         dataset_names += sparse_dataset_names56
     else:
-        sparse_dataset16, sparse_dataset_names16 = get_sparse_dataset(
+        sparse_dataset24, sparse_dataset_names24 = get_sparse_dataset(
             args, crop_size=args.crop_size_24, T=24, N=args.traj_per_sample_24, random_first=args.random_first_frame, version='au')
-        sparse_loader16 = torch.utils.data.DataLoader(
-            sparse_dataset16,
+        sparse_loader24 = torch.utils.data.DataLoader(
+            sparse_dataset24,
             batch_size=args.batch_size,
             shuffle=True,
             num_workers=args.num_workers_24,
@@ -393,10 +393,10 @@ def run(model, args):
             collate_fn=utils.data.collate_fn_train,
             drop_last=True,
         )
-        sparse_loader16 = fabric.setup_dataloaders(sparse_loader16, move_to_device=False)
-        print('len(sparse_loader16)', len(sparse_loader16))
-        sparse_iterloader16 = iter(sparse_loader16)
-        dataset_names += sparse_dataset_names16
+        sparse_loader24 = fabric.setup_dataloaders(sparse_loader24, move_to_device=False)
+        print('len(sparse_loader24)', len(sparse_loader24))
+        sparse_iterloader24 = iter(sparse_loader24)
+        dataset_names += sparse_dataset_names24
     
     optimizer, scheduler = fetch_optimizer(args, model)
 
@@ -464,10 +464,10 @@ def run(model, args):
                     batch = next(sparse_iterloader56)
             else:
                 try:
-                    batch = next(sparse_iterloader16)
+                    batch = next(sparse_iterloader24)
                 except StopIteration:
-                    sparse_iterloader16 = iter(sparse_loader16)
-                    batch = next(sparse_iterloader16)
+                    sparse_iterloader24 = iter(sparse_loader24)
+                    batch = next(sparse_iterloader24)
             batch, gotit = batch
                 
         rtime = time.time()-f_start_time
@@ -539,7 +539,7 @@ def run(model, args):
 
 if __name__ == "__main__":
     init_dir = ''
-
+    
     # this file is for training alltracker in "stage 1",
     # which involves kubric-only training.
     # this is also the file to execute all ablations.
