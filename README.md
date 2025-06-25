@@ -8,6 +8,8 @@
 
 AllTracker estimates long-range point tracks by way of estimating the flow field between a query frame and every other frame of a video. Unlike existing point tracking methods, our approach delivers high-resolution and dense (all-pixel) correspondence fields, which can be visualized as flow maps. Unlike existing optical flow methods, our approach corresponds one frame to hundreds of subsequent frames, rather than just the next frame.
 
+We are actively adding to this repo, but please ping or open an issue if you need something or notice something broken.
+
 
 ## Env setup
 
@@ -51,10 +53,14 @@ Run the demo
 python demo.py
 ```
 
+In case the dropbox links break, or it turns out more convenient, we are putting checkpoints into [huggingface](https://huggingface.co/aharley/alltracker/tree/main) too.
+
 
 ## Training
 
-(Working on this...)
+(Working on this still (June 24).)
+
+AllTracker is trained in two stages: Stage 1 is kubric alone; Stage 2 is a mix of datasets. We do this to enable apples-to-apples comparisons with other models trained on Kubric. 
 
 ### Data prep
 
@@ -64,7 +70,7 @@ This is just a torch export of the official `kubric-public/tfds/movi_f/512x512` 
 
 With Kubric, you can skip the other datasets and start training Stage 1.
 
-Download the rest of the point tracking datasets from [here](https://huggingface.co/aharley/alltracker/tree/main).
+Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main).
 
 There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
 ```
