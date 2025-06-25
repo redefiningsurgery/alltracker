@@ -64,9 +64,7 @@ AllTracker is trained in two stages: Stage 1 is kubric alone; Stage 2 is a mix o
 
 ### Data prep
 
-Download Kubric from [here].
-
-This is just a torch export of the official `kubric-public/tfds/movi_f/512x512` data.
+Start by downloding Kubric: [kubric_au.tar.gz](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/kubric_au.tar.gz?download=true). This is just a torch export of the official `kubric-public/tfds/movi_f/512x512` data.
 
 With Kubric, you can skip the other datasets and start training Stage 1.
 
@@ -96,7 +94,6 @@ Stage 2 is to train the model for 400k steps on a mix of point tracking datasets
 
 ```
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage2.py  --mixed_precision --init_dir '64Ai4i3_5e-4m_stage1abc_1318' --lr 1e-5 --max_steps 400000 --exp 'stage2abc'
-
 ```
 
 
