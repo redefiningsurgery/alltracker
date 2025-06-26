@@ -24,7 +24,6 @@ class PointDataset(torch.utils.data.Dataset):
         # photometric augmentation
         self.photo_aug = ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.25 / 3.14)
         self.blur_aug = GaussianBlur(11, sigma=(0.1, 2.0))
-
         self.blur_aug_prob = 0.25
         self.color_aug_prob = 0.25
 
@@ -45,7 +44,6 @@ class PointDataset(torch.utils.data.Dataset):
         self.resize_delta = 0.2
         self.max_crop_offset = 50
 
-        self.rot_prob = 0.25
         self.h_flip_prob = 0.5
         self.v_flip_prob = 0.5
 
@@ -298,15 +296,15 @@ class PointDataset(torch.utils.data.Dataset):
             trajs[s, :, 0] -= x0
             trajs[s, :, 1] -= y0
 
-        H_new = crop_size[0]
-        W_new = crop_size[1]
+        H = crop_size[0]
+        W = crop_size[1]
 
         if np.random.rand() < self.h_flip_prob:
             rgbs = [rgb[:, ::-1].copy() for rgb in rgbs]
-            trajs[:, :, 0] = W_new - trajs[:, :, 0]
+            trajs[:, :, 0] = W-1 - trajs[:, :, 0]
         if np.random.rand() < self.v_flip_prob:
             rgbs = [rgb[::-1].copy() for rgb in rgbs]
-            trajs[:, :, 1] = H_new - trajs[:, :, 1]
+            trajs[:, :, 1] = H-1 - trajs[:, :, 1]
         return np.stack(rgbs), trajs
 
     def crop(self, rgbs, trajs, crop_size):
