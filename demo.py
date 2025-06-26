@@ -33,7 +33,7 @@ def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.1, inds=None)
         confs = confs[inds]
         colors = colors[inds]
     for ii in range(N):
-        xy = pts[ii].astype(np.int32)
+        xy = pts[ii].round().astype(np.int32)
         color = (int(colors[ii,0]),int(colors[ii,1]),int(colors[ii,2]))
         if visibs[ii] > 0.5:
             thickness = -1 # filled in
