@@ -70,11 +70,21 @@ def forward_video(rgbs, model, args):
     torch.cuda.empty_cache()
     print('starting forward...')
     f_start_time = time.time()
+
     flows_e, visconf_maps_e, _, _ = \
-        model(rgbs, iters=args.inference_iters, sw=None, is_training=False)
+        model(rgbs[:, args.query_frame:], iters=args.inference_iters, sw=None, is_training=False)
+    traj_maps_e = flows_e + grid_xy # B,Tf,2,H,W
+    if args.query_frame > 0:
+        backward_flows_e, backward_visconf_maps_e, _, _ = \
+            model(rgbs[:, :args.query_frame+1].flip([1]), iters=args.inference_iters, sw=None, is_training=False)
+        backward_traj_maps_e = backward_flows_e + grid_xy # B,Tb,2,H,W, reversed
+        backward_traj_maps_e = backward_traj_maps_e.flip([1])[:, :-1] # flip time and drop the overlapped frame
+        backward_visconf_maps_e = backward_visconf_maps_e.flip([1])[:, :-1] # flip time and drop the overlapped frame
+        traj_maps_e = torch.cat([backward_traj_maps_e, traj_maps_e], dim=1) # B,T,2,H,W
+        visconf_maps_e = torch.cat([backward_visconf_maps_e, visconf_maps_e], dim=1) # B,T,2,H,W
     ftime = time.time()-f_start_time
     print('finished forward; %.2f seconds / %d frames; %d fps' % (ftime, T, round(T/ftime)))
-    traj_maps_e = flows_e + grid_xy # B,T,2,H,W
+    # traj_maps_e = flows_e + grid_xy # B,T,2,H,W
     utils.basic.print_stats('traj_maps_e', traj_maps_e)
     utils.basic.print_stats('visconf_maps_e', visconf_maps_e)
 
@@ -92,9 +102,9 @@ def forward_video(rgbs, model, args):
     inds = np.argsort(vels)
 
     fn = args.mp4_path.split('/')[-1].split('.')[0]
-    rgb_out_f = './pt_vis_%s_rate%d.mp4' % (fn, rate)
+    rgb_out_f = './pt_vis_%s_rate%d_q%d.mp4' % (fn, rate, args.query_frame)
     print('rgb_out_f', rgb_out_f)
-    temp_dir = 'temp_pt_vis_%s_rate%d' % (fn, rate)
+    temp_dir = 'temp_pt_vis_%s_rate%d_q%d' % (fn, rate, args.query_frame)
     utils.basic.mkdir(temp_dir)
     vis = []
     for ti in range(T):
@@ -180,6 +190,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt_init", type=str, default='./checkpoints/alltracker.pth') # the ckpt we want
     parser.add_argument("--mp4_path", type=str, default='./demo_video/monkey.mp4') # input video 
+    parser.add_argument("--query_frame", type=int, default=0) # which frame to track from
     parser.add_argument("--inference_iters", type=int, default=4) # number of inference steps per forward
     parser.add_argument("--window_len", type=int, default=16) # model hyperparam
     parser.add_argument("--subsample_rate", type=int, default=4) # vis hyp
