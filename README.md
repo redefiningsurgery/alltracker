@@ -31,15 +31,7 @@ conda activate alltracker
 pip install -r requirements.txt
 ```
 
-
 ## Running the demo
-
-Download the model:
-
-```
-download_reference_model.sh
-tar -xvf alltracker_reference.tar.gz
-```
 
 Download the sample video:
 ```
@@ -48,12 +40,11 @@ sh download_video.sh
 cd ..
 ```
 
-Run the demo
+Run the demo:
 ```
 python demo.py
 ```
-
-In case the dropbox links break, or it turns out more convenient, we are putting checkpoints into [huggingface](https://huggingface.co/aharley/alltracker/tree/main) too.
+It will automatically download the weights from [huggingface](https://huggingface.co/aharley/alltracker/tree/main) if needed.
 
 
 ## Training
