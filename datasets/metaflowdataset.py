@@ -251,8 +251,8 @@ class SparseFlowAugmentor:
             img2 = np.pad(img2, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), 'constant', constant_values=((0, 0), (0, 0), (0, 0)))
             flow = np.pad(flow, ((pad_t, pad_b), (pad_l, pad_r), (0, 0)), 'constant', constant_values=((0, 0), (0, 0), (0, 0)))
             valid = np.pad(valid, ((pad_t, pad_b), (pad_l, pad_r)), 'constant', constant_values=((0, 0), (0, 0)))
+            
         # randomly sample scale
-
         ht, wd = img1.shape[:2]
         min_scale = np.maximum(
             (self.crop_size[0] + 1) / float(ht), 
@@ -289,7 +289,6 @@ class SparseFlowAugmentor:
         flow = flow[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
         valid = valid[y0:y0+self.crop_size[0], x0:x0+self.crop_size[1]]
         return img1, img2, flow, valid
-
 
     def __call__(self, img1, img2, flow, valid):
         img1, img2 = self.color_transform(img1, img2)
@@ -431,10 +430,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
             sparse_aug_params = {'crop_size': crop_size, 'min_scale': -0.5, 'max_scale': 1.0, 'do_flip': True}
             self.augmentor = FlowAugmentor(**aug_params)
             self.sparse_augmentor = SparseFlowAugmentor(**sparse_aug_params)
-        # if self.use_augs:
-        # else:
-        #     self.augmentor = None
-        #     self.sparse_augmentor = None
 
         self.rgb0_paths = []
         self.rgb1_paths = []
@@ -447,11 +442,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
         print('host', host)
         
         if dataset_name is None:
-            # training datasets
-            # self.dataset_names = ['autoflow', 'chairs', 'driving', 'monkaa', 'spring', 'tartanair', 'things', 'viper']
-            # self.dataset_names = ['autoflow', 'chairs', 'driving', 'hd1k', 'monkaa', 'spring', 'tartanair', 'things', 'viper']
-            # self.dataset_names = ['autoflow', 'chairs']
-            # print('skipping some datasets, to debug other things first')
+            # use all the training datasets
             self.dataset_names = ['autoflow', 'chairs', 'driving', 'hd1k', 'kitti', 'monkaa', 'sintel', 'spring', 'tartanair', 'things', 'viper']
         else:
             self.dataset_names = [dataset_name] if isinstance(dataset_name, str) else dataset_name
@@ -517,15 +508,12 @@ class MetaflowDataset(torch.utils.data.Dataset):
                                 for direction in ['into_future', 'into_past']:
                                     idir = os.path.join(dataset_location, dstype, fotype, sce, spd, cam)
                                     fdir = os.path.join(dataset_location, 'optical_flow', fotype, sce, spd, direction, cam)
-                                    # print('fdir', fdir)
-                                    # print('idir', idir)
                                     if 'webp' in dstype:
                                         images = sorted(glob.glob(os.path.join(idir, '*.webp')) )
                                     else:
                                         images = sorted(glob.glob(os.path.join(idir, '*.png')) )
                                     flows = sorted(glob.glob(os.path.join(fdir, '*.pfm')) )
                                     for i in range(len(flows)-1):
-                                        # print('images[i]', images[i])
                                         if direction == 'into_future':
                                             self.rgb0_paths.append(images[i])
                                             self.rgb1_paths.append(images[i+1])
@@ -552,7 +540,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
                     break
                 for i in range(len(flows)-1):
                     if (i==0 and (not is_training)) or (i>0 and is_training): # reserve zeroth for val
-                        for mult in range(30): # oversample, following sea-raft
+                        for mult in range(30): # copy sea-raft
                             self.rgb0_paths.append(images[i])
                             self.rgb1_paths.append(images[i+1])
                             self.flow_paths.append(flows[i])
@@ -579,8 +567,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
                 images1 = images1[t_len:]
                 images2 = images2[t_len:]
                 flow_list = flow_list[t_len:]
-            # oversample 
-            images1 = images1 * 80
+            images1 = images1 * 80 # copy sea-raft
             images2 = images2 * 80
             flow_list = flow_list * 80
             self.rgb0_paths += images1
@@ -599,33 +586,17 @@ class MetaflowDataset(torch.utils.data.Dataset):
             for dstype in ['frames_cleanpass_webp', 'frames_finalpass']:
                 for cam in ['left', 'right']:
                     for direction in ['into_future', 'into_past']:
-                        # oo = os.path.join(dataset_location, dstype, '*/*')
-                        # print('oo', oo)
                         image_dirs = sorted(glob.glob(os.path.join(dataset_location, dstype, '*')))
                         flow_dirs = sorted(glob.glob(os.path.join(dataset_location, 'optical_flow/*')))
-                        # print('image_dirs', image_dirs)
                         image_dirs = sorted([os.path.join(f, cam) for f in image_dirs])
                         flow_dirs = sorted([os.path.join(f, direction, cam) for f in flow_dirs])
                         for idir, fdir in zip(image_dirs, flow_dirs):
-                            # dstype = 'frames_finalpass'
-                            # # idir = '/scr/aharley/monkaa/frames_finalpass/flower_storm_x2'
-                            # # fdir = '/scr/aharley/monkaa/optical_flow/funnyworld_x2'
-                            # direction = 'into_future'
-                            # idir = '/scr/aharley/monkaa/frames_finalpass/funnyworld_x2/left'
-                            # fdir = '/scr/aharley/monkaa/optical_flow/funnyworld_x2/into_future/left'
-                            # print('idir', idir)
-                            # print('fdir', fdir)
                             if 'webp' in dstype:
                                 images = sorted(glob.glob(os.path.join(idir, '*.webp')) )
                             else:
                                 images = sorted(glob.glob(os.path.join(idir, '*.png')) )
-                            # print('images', images)
                             flows = sorted(glob.glob(os.path.join(fdir, '*.pfm')) )
-                            # # print('flows', flows)
-                            # print('len(images)', len(images))
-                            # print('len(flows)', len(flows))
                             for i in range(len(flows)-1):
-                                # print('images[i]', images[i])
                                 if direction == 'into_future':
                                     self.rgb0_paths.append(images[i])
                                     self.rgb1_paths.append(images[i+1])
@@ -643,20 +614,16 @@ class MetaflowDataset(torch.utils.data.Dataset):
         if 'spring' in self.dataset_names:
             # SPRING (1080x1920)
             count = 0
-            if 'orion' in host:
-                dataset_location = '/orion/group/springdataset/spring'
-            else:
-                dataset_location = os.path.join(data_root, 'spring/spring')
+            dataset_location = os.path.join(data_root, 'springdataset/spring')
             seq_root = os.path.join(dataset_location, 'train')
             data_list = []
             for scene in sorted(os.listdir(seq_root)):
-                # for cam in ["left", "right"]:
-                for cam in ["left"]:
+                for cam in ["left"]: # we did not download "right" 
                     images = sorted(glob.glob(os.path.join(seq_root, scene, f"frame_{cam}", '*.png')))
                     # forward
                     for frame in range(1, len(images)):
                         data_list.append((frame, scene, cam, "FW"))
-                    # # backward
+                    # # backward # we did not download "BW"
                     # for frame in reversed(range(2, len(images)+1)):
                     #     data_list.append((frame, scene, cam, "BW"))
             for frame_data in data_list:
@@ -668,7 +635,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
                     img2_path = os.path.join(seq_root, scene, f"frame_{cam}", f"frame_{cam}_{frame-1:04d}.png")
                 flow_path = os.path.join(seq_root, scene, f"flow_{direction}_{cam}", f"flow_{direction}_{cam}_{frame:04d}.flo5")
 
-                for mult in range(10): # oversample
+                for mult in range(10): # copy sea-raft
                     self.rgb0_paths.append(img1_path)
                     self.rgb1_paths.append(img2_path)
                     self.flow_paths.append(flow_path)
@@ -685,14 +652,8 @@ class MetaflowDataset(torch.utils.data.Dataset):
             image_dirs = sorted([os.path.join(f, 'image_left') for f in seqs])
             flow_dirs = sorted([os.path.join(f, 'flow') for f in seqs])
             for idir, fdir in zip(image_dirs, flow_dirs):
-                # print('idir', idir)
-                # print('fdir', fdir)
                 images = sorted(glob.glob(os.path.join(idir, '*.png')) )
-                # print('images', images)
                 flows = sorted(glob.glob(os.path.join(fdir, '*.npy')) )
-                # print('flows', flows)
-                # print('len(images)', len(images))
-                # print('len(flows)', len(flows))
                 if len(flows)==len(images)-1:
                     for i in range(0,len(flows)-1,10): # redundant data so we subsample
                         self.rgb0_paths.append(images[i])
@@ -710,9 +671,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
             for dstype in ['frames_cleanpass_webp', 'frames_finalpass']:
                 for cam in ['left']:
                     for direction in ['into_future', 'into_past']:
-                        # jn = os.path.join(dataset_location, dstype, 'TRAIN/*/*')
-                        # print('jn', jn)
-                        # import ipdb; ipdb.set_trace()
                         if is_training:
                             image_dirs = sorted(glob.glob(os.path.join(dataset_location, dstype, 'TRAIN/*/*')))
                             flow_dirs = sorted(glob.glob(os.path.join(dataset_location, 'optical_flow/TRAIN/*/*')))
@@ -749,8 +707,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
             count = 0
             dataset_location = os.path.join(data_root, 'sintel')
             for v in ['clean', 'final']:
-                # for v in ['clean']:
-                # for v in ['final']:
                 rgb_root = os.path.join(dataset_location, 'training/%s' % v)
                 flow_root = os.path.join(dataset_location, 'training/flow')
                 valid_root = os.path.join(dataset_location, 'training/invalid')
@@ -776,7 +732,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
                         flow_path = os.path.join(cur_flow_path, '%s.flo' % img_names[si])
                         valid_path = os.path.join(cur_valid_path, '%s.png' % img_names[si])
 
-                        for mult in range(20): # oversample, following sea-raft
+                        for mult in range(20): # copy sea-raft
                             self.rgb0_paths.append(rgb0_path)
                             self.rgb1_paths.append(rgb1_path)
                             self.flow_paths.append(flow_path)
@@ -839,9 +795,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
         cur_flow_path = self.flow_paths[index]
         cur_valid_path = self.valid_paths[index]
         dname = self.dnames[index]
-        # print('dname', dname)
-        # print('cur_rgb0_path', cur_rgb0_path)
-        # print('cur_flow_path', cur_flow_path)
 
         rgb0 = read_gen(cur_rgb0_path)
         rgb1 = read_gen(cur_rgb1_path)
@@ -890,8 +843,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
             valid = ((np.abs(flow[:,:,0])*np.abs(flow[:,:,1]))>0).astype(np.float32) * match
         elif dname=='tartanair':
             flow = np.load(cur_flow_path)
-            # print('flow', flow.shape)
-            # import ipdb; ipdb.set_trace()
         elif dname=='sintel':
             flow = readFlow(cur_flow_path)
             flow = np.array(flow).astype(np.float32)
@@ -907,9 +858,7 @@ class MetaflowDataset(torch.utils.data.Dataset):
         else:
             flow = readFlow(cur_flow_path)
             flow = np.array(flow).astype(np.float32)
-
-        # print('flow', flow.shape)
-        # print('valid', valid.shape)
+            
         valid[np.isnan(np.sum(flow, axis=-1))] = 0
         flow[np.isnan(flow)] = 0
 
@@ -923,9 +872,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
             else: # sparse
                 flow, valid = self.sparse_augmentor.resize_sparse_flow_map(flow, valid, sc, sc)
 
-        # print('rgb0', rgb0.shape)
-        # print('flow', flow.shape)
-
         if self.crop_size is not None:
             if self.use_augs:
                 if dname=='kitti' or dname=='hd1k':
@@ -936,10 +882,6 @@ class MetaflowDataset(torch.utils.data.Dataset):
                 print(dname, rgb0.shape)
                 rgb0, rgb1, flow, valid = just_crop_flow(rgb0, rgb1, flow, valid, self.crop_size)
 
-        # if valid is None:
-        #     mag = np.linalg.norm(flow, axis=2)
-        #     valid = (mag>0).astype(np.float32)
-
         # final isnan check before going to torch
         valid[np.isnan(np.sum(flow, axis=-1))] = 0
         flow[np.isnan(flow)] = 0
@@ -948,19 +890,10 @@ class MetaflowDataset(torch.utils.data.Dataset):
         rgb1 = torch.from_numpy(rgb1).permute(2,0,1) # 3,H,W
         flow = torch.from_numpy(flow).permute(2,0,1) # 2,H,W
         valid = torch.from_numpy(valid) # H,W
-
-
-        # if valid is None:
-        #     valid = torch.ones_like(flow[0])
-        # else:
-        #     valid = torch.from_numpy(valid).float()
         valid = (valid==1.0).float().unsqueeze(0)
-        # valid = valid.unsqueeze(0) # 1,H,W
 
         flow_mag = torch.linalg.norm(flow, dim=0, keepdim=True)
         valid = (flow_mag < 400.0).float() * valid
-        
-        # flow = flow * valid
 
         sample = {
             'dname': dname,
