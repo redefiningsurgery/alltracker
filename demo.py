@@ -142,19 +142,25 @@ def run(model, args):
     log_dir = './logs_demo'
     
     global_step = 0
-    
-    _ = utils.saveload.load(
-        None,
-        args.ckpt_init,
-        model,
-        optimizer=None,
-        scheduler=None,
-        ignore_load=None,
-        strict=True,
-        verbose=False,
-        weights_only=False,
-    )
-    print('loaded weights from', args.ckpt_init)
+
+    if args.ckpt_init:
+        _ = utils.saveload.load(
+            None,
+            args.ckpt_init,
+            model,
+            optimizer=None,
+            scheduler=None,
+            ignore_load=None,
+            strict=True,
+            verbose=False,
+            weights_only=False,
+        )
+        print('loaded weights from', args.ckpt_init)
+    else:
+        url = "https://huggingface.co/aharley/alltracker/resolve/main/alltracker.pth"
+        state_dict = torch.hub.load_state_dict_from_url(url, map_location='cpu')
+        model.load_state_dict(state_dict['model'], strict=True)
+        print('loaded weights from', url)
 
     model.cuda()
     for n, p in model.named_parameters():
@@ -188,7 +194,7 @@ if __name__ == "__main__":
     torch.set_grad_enabled(False)
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ckpt_init", type=str, default='./checkpoints/alltracker.pth') # the ckpt we want
+    parser.add_argument("--ckpt_init", type=str, default='') # the ckpt we want (else default)
     parser.add_argument("--mp4_path", type=str, default='./demo_video/monkey.mp4') # input video 
     parser.add_argument("--query_frame", type=int, default=0) # which frame to track from
     parser.add_argument("--inference_iters", type=int, default=4) # number of inference steps per forward
