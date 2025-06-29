@@ -42,9 +42,9 @@ cd ..
 
 Run the demo:
 ```
-python demo.py
+python demo.py --mp4_path "./demo_video/monkey.mp4" --query_frame 0
 ```
-It will automatically download the weights from [huggingface](https://huggingface.co/aharley/alltracker/tree/main) if needed.
+The demo script will automatically download the model weights from [huggingface](https://huggingface.co/aharley/alltracker/tree/main) if needed. 
 
 
 ## Training
