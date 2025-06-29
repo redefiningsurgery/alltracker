@@ -49,9 +49,7 @@ The demo script will automatically download the model weights from [huggingface]
 
 ## Training
 
-(Working on this still (June 24).)
-
-AllTracker is trained in two stages: Stage 1 is kubric alone; Stage 2 is a mix of datasets. We do this to enable apples-to-apples comparisons with other models trained on Kubric. 
+AllTracker is trained in two stages: Stage 1 is kubric alone; Stage 2 is a mix of datasets. This 2-stage regime enables fair comparisons with models that train only on Kubric. 
 
 ### Data prep
 
@@ -59,9 +57,7 @@ Start by downloding Kubric: [kubric_au.tar.gz](https://huggingface.co/datasets/a
 
 With Kubric, you can skip the other datasets and start training Stage 1.
 
-Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main).
-
-There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
+Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main). There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
 ```
 cat ce24_flt_aa ce24_flt_ab ce24_flt_ac ce24_flt_ad ce24_flt_ae > ce24_flt.tar.gz
 ```
@@ -87,6 +83,9 @@ Stage 2 is to train the model for 400k steps on a mix of point tracking datasets
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7; python train_stage2.py  --mixed_precision --init_dir '64Ai4i3_5e-4m_stage1abc_1318' --lr 1e-5 --max_steps 400000 --exp 'stage2abc'
 ```
 
+## Evaluation
+
+(Still cleaning the code here.)
 
 
 ## Citation
