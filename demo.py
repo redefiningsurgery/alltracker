@@ -203,7 +203,7 @@ if __name__ == "__main__":
     parser.add_argument("--mixed_precision", action='store_true', default=False)
     args = parser.parse_args()
 
-    from nets.net34 import Net; model = Net(args.window_len)
+    from nets.alltracker import Net; model = Net(args.window_len)
     count_parameters(model)
 
     run(model, args)

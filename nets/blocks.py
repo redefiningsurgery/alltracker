@@ -1186,16 +1186,7 @@ class FullUpdateBlock(nn.Module):
     def forward(self, flowfeat, ctxfeat, visconf, corr, flow, S, upsample=True):
         BS,C,H,W = flowfeat.shape
         B = BS//S
-
-        # print('flowfeat', flowfeat.shape)
-        # print('ctxfeat', ctxfeat.shape)
-        # print('visconf', visconf.shape)
-        # print('corr', corr.shape)
-        # print('flow', flow.shape)
-
         motion_features = self.encoder(flow, corr)
-        
-        # print('cat', torch.cat([flowfeat, ctxfeat, motion_features, visconf, flow], dim=1).shape)
         flowfeat = self.compressor(torch.cat([flowfeat, ctxfeat, motion_features, visconf], dim=1))
         for blk in self.refine:
             flowfeat = blk(flowfeat, S)
@@ -1247,14 +1238,7 @@ class FacUpdateBlock(nn.Module):
     def forward(self, flowfeat, ctxfeat, visconf, corr, flow, S, upsample=True):
         BS,C,H,W = flowfeat.shape
         B = BS//S
-
-        # print('flowfeat', flowfeat.shape)
-        # print('ctxfeat', ctxfeat.shape)
-        # print('visconf', visconf.shape)
-        # print('corr', corr.shape)
-        # print('flow', flow.shape)
         corr = self.corr_encoder(corr)
-        # print('cat', torch.cat([flowfeat, ctxfeat, motion_features, visconf, flow], dim=1).shape)
         flowfeat = self.compressor(torch.cat([flowfeat, ctxfeat, corr, visconf, flow], dim=1))
         for blk in self.refine:
             flowfeat = blk(flowfeat, S)

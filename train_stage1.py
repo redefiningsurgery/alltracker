@@ -544,7 +544,7 @@ if __name__ == "__main__":
     # which involves kubric-only training.
     # this is also the file to execute all ablations.
     
-    from nets.net34 import Net; exp = 'stage1' # clean up for release
+    from nets.alltracker import Net; exp = 'stage1' # clean up for release
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp", default=exp)

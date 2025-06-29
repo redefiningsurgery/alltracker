@@ -64,7 +64,8 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
         shuffle=True,
         only_first=True,
     )
-    
+
+    # sample clips from the S64 pod & kub exports 
     export_dataset2 = exportdataset.ExportDataset(
         data_root=os.path.join(args.data_dir, 'alltrack_export'),
         version='ce64',
@@ -94,6 +95,7 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
         only_first=True,
     )
 
+    # stage1 kubric data
     from datasets import kubric_movif_dataset
     kubric_version = 'au'
     kub_dataset = kubric_movif_dataset.KubricMovifDataset(
@@ -139,6 +141,7 @@ def get_multi_dataset_64(args, crop_size, N, version='aa00', T=56):
         only_first=True,
     )
 
+    # sample a bit more from kubric so we don't forget
     export_dataset2 = exportdataset.ExportDataset(
         data_root=os.path.join(args.data_dir, 'alltrack_export'),
         version='ce64',
@@ -922,7 +925,7 @@ if __name__ == "__main__":
     # this file is for training alltracker in "stage 2", 
     # which involves mixing flow datasets with point tracking datasets.
     
-    from nets.net34 import Net; exp = 'stage2' # clean up for release
+    from nets.alltracker import Net; exp = 'stage2' # clean up for release
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp", default=exp)
