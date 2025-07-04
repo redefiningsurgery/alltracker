@@ -1,6 +1,6 @@
 # AllTracker: Efficient Dense Point Tracking at High Resolution
 
-**[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)]**
+**[[Paper](https://arxiv.org/abs/2506.07310)] [[Project Page](https://alltracker.github.io/)] [[Gradio Demo](https://huggingface.co/spaces/aharley/alltracker)]**
 
 <img src='https://alltracker.github.io/images/monkey.jpg'>
 
