@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import sys
-sys.path.append('..')
+code_dir = os.path.dirname(os.path.realpath(__file__))
+repo_root = os.path.abspath(os.path.join(code_dir, '..'))
+if repo_root not in sys.path: sys.path.append(repo_root)
 import utils.misc
 import numpy as np
 
