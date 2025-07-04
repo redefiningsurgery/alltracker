@@ -160,7 +160,7 @@ def forward_video(rgbs, framerate, model, args):
         frames = np.concatenate([frames_top, frames], axis=1)
     elif args.hstack:
         frames_left = rgbs[0].clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
-        frames = np.concatenate([frames_top, frames], axis=2)
+        frames = np.concatenate([frames_left, frames], axis=2)
     
     print('writing frames to disk')
     f_start_time = time.time()
