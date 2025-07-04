@@ -90,7 +90,14 @@ def draw_pts_gpu(rgbs, trajs, visibs, colormap, rate=1, bkg_opacity=0.5):
         alpha = weight.clamp(0, 1) * opacity
         accum = accum / (weight + 1e-6)  # [3, H, W]
         rgbs[t] = rgbs[t] * (1 - alpha) + accum * alpha
-    return rgbs.clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
+    rgbs = rgbs.clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
+    if bkg_opacity==0.0:
+        for t in range(T):
+            hsv_frame = cv2.cvtColor(rgbs[t], cv2.COLOR_RGB2HSV)
+            saturation_factor = 1.5
+            hsv_frame[..., 1] = np.clip(hsv_frame[..., 1] * saturation_factor, 0, 255)
+            rgbs[t] = cv2.cvtColor(hsv_frame, cv2.COLOR_HSV2RGB)
+    return rgbs
 
 def count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
