@@ -158,6 +158,9 @@ def forward_video(rgbs, framerate, model, args):
     if args.vstack:
         frames_top = rgbs[0].clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
         frames = np.concatenate([frames_top, frames], axis=1)
+    elif args.hstack:
+        frames_left = rgbs[0].clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
+        frames = np.concatenate([frames_top, frames], axis=2)
     
     print('writing frames to disk')
     f_start_time = time.time()
@@ -254,6 +257,7 @@ if __name__ == "__main__":
     parser.add_argument("--conf_thr", type=float, default=0.1) # vis hyp
     parser.add_argument("--bkg_opacity", type=float, default=0.5) # vis hyp
     parser.add_argument("--vstack", action='store_true', default=False) # whether to stack the input and output in the mp4
+    parser.add_argument("--hstack", action='store_true', default=False) # whether to stack the input and output in the mp4
     args = parser.parse_args()
 
     from nets.alltracker import Net; model = Net(args.window_len)
