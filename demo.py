@@ -12,6 +12,8 @@ import time
 
 def read_mp4(name_path):
     vidcap = cv2.VideoCapture(name_path)
+    framerate = int(round(vidcap.get(cv2.CAP_PROP_FPS)))
+    print('framerate', framerate)
     frames = []
     while vidcap.isOpened():
         ret, frame = vidcap.read()
@@ -20,28 +22,75 @@ def read_mp4(name_path):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frames.append(frame)
     vidcap.release()
-    return frames
+    return frames, framerate
 
-def draw_pts(rgb, pts, visibs, confs, colors, radius=2, conf_thr=0.1, inds=None):
-    H,W,C = rgb.shape
-    assert(C==3)
-    N,D = pts.shape
-    assert(D==2)
-    if inds is not None:
-        pts = pts[inds]
-        visibs = visibs[inds]
-        confs = confs[inds]
-        colors = colors[inds]
-    for ii in range(N):
-        xy = pts[ii].round().astype(np.int32)
-        color = (int(colors[ii,0]),int(colors[ii,1]),int(colors[ii,2]))
-        if visibs[ii] > 0.5:
-            thickness = -1 # filled in
-        else:
-            thickness = 1 # hollow
-        if confs[ii] > conf_thr:
-            cv2.circle(rgb, (xy[0], xy[1]), radius, color, thickness)
-    return rgb
+def draw_pts_gpu(rgbs, trajs, visibs, colormap, rate=1, bkg_opacity=0.5):
+    device = rgbs.device
+    T, C, H, W = rgbs.shape
+    trajs = trajs.permute(1,0,2) # N,T,2
+    visibs = visibs.permute(1,0) # N,T
+    N = trajs.shape[0]
+    colors = torch.tensor(colormap, dtype=torch.float32, device=device)  # [N,3]
+
+    rgbs = rgbs * bkg_opacity # darken, to see the point tracks better
+    
+    opacity = 1.0
+    if rate==1:
+        radius = 1
+        opacity = 0.9
+    elif rate==2:
+        radius = 1
+    elif rate== 4:
+        radius = 2
+    elif rate== 8:
+        radius = 4
+    else:
+        radius = 6
+    sharpness = 0.15 + 0.05 * np.log2(rate)
+    
+    D = radius * 2 + 1
+    y = torch.arange(D, device=device).float()[:, None] - radius
+    x = torch.arange(D, device=device).float()[None, :] - radius
+    dist2 = x**2 + y**2
+    icon = torch.clamp(1 - (dist2 - (radius**2) / 2.0) / (radius * 2 * sharpness), 0, 1)  # [D,D]
+    icon = icon.view(1, D, D)
+    dx = torch.arange(-radius, radius + 1, device=device)
+    dy = torch.arange(-radius, radius + 1, device=device)
+    disp_y, disp_x = torch.meshgrid(dy, dx, indexing="ij")  # [D,D]
+    for t in range(T):
+        mask = visibs[:, t]  # [N]
+        if mask.sum() == 0:
+            continue
+        xy = trajs[mask, t] + 0.5  # [N,2]
+        xy[:, 0] = xy[:, 0].clamp(0, W - 1)
+        xy[:, 1] = xy[:, 1].clamp(0, H - 1)
+        colors_now = colors[mask]  # [N,3]
+        N = xy.shape[0]
+        cx = xy[:, 0].long()  # [N]
+        cy = xy[:, 1].long()
+        x_grid = cx[:, None, None] + disp_x  # [N,D,D]
+        y_grid = cy[:, None, None] + disp_y  # [N,D,D]
+        valid = (x_grid >= 0) & (x_grid < W) & (y_grid >= 0) & (y_grid < H)
+        x_valid = x_grid[valid]  # [K]
+        y_valid = y_grid[valid]
+        icon_weights = icon.expand(N, D, D)[valid]  # [K]
+        colors_valid = colors_now[:, :, None, None].expand(N, 3, D, D).permute(1, 0, 2, 3)[
+            :, valid
+        ]  # [3, K]
+        idx_flat = (y_valid * W + x_valid).long()  # [K]
+
+        accum = torch.zeros_like(rgbs[t])  # [3, H, W]
+        weight = torch.zeros(1, H * W, device=device)  # [1, H*W]
+        img_flat = accum.view(C, -1)  # [3, H*W]
+        weighted_colors = colors_valid * icon_weights  # [3, K]
+        img_flat.scatter_add_(1, idx_flat.unsqueeze(0).expand(C, -1), weighted_colors)
+        weight.scatter_add_(1, idx_flat.unsqueeze(0), icon_weights.unsqueeze(0))
+        weight = weight.view(1, H, W)
+
+        alpha = weight.clamp(0, 1) * opacity
+        accum = accum / (weight + 1e-6)  # [3, H, W]
+        rgbs[t] = rgbs[t] * (1 - alpha) + accum * alpha
+    return rgbs.clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
 
 def count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
@@ -57,7 +106,7 @@ def count_parameters(model):
     print('total params: %.2f M' % (total_params/1000000.0))
     return total_params
 
-def forward_video(rgbs, model, args):
+def forward_video(rgbs, framerate, model, args):
     
     B,T,C,H,W = rgbs.shape
     assert C == 3
@@ -84,22 +133,16 @@ def forward_video(rgbs, model, args):
         visconf_maps_e = torch.cat([backward_visconf_maps_e, visconf_maps_e], dim=1) # B,T,2,H,W
     ftime = time.time()-f_start_time
     print('finished forward; %.2f seconds / %d frames; %d fps' % (ftime, T, round(T/ftime)))
-    # traj_maps_e = flows_e + grid_xy # B,T,2,H,W
     utils.basic.print_stats('traj_maps_e', traj_maps_e)
     utils.basic.print_stats('visconf_maps_e', visconf_maps_e)
 
     # subsample to make the vis more readable
-    rate = args.subsample_rate
+    rate = args.rate
     trajs_e = traj_maps_e[:,:,:,::rate,::rate].reshape(B,T,2,-1).permute(0,1,3,2) # B,T,N,2
     visconfs_e = visconf_maps_e[:,:,:,::rate,::rate].reshape(B,T,2,-1).permute(0,1,3,2) # B,T,N,2
-    print('trajs_e', trajs_e.shape)
+
     xy0 = trajs_e[0,0].cpu().numpy()
     colors = utils.improc.get_2d_colors(xy0, H, W)
-
-    # sort according to velocity, so that moving points are drawn last
-    vels = trajs_e[0,1:].detach().cpu().numpy() - trajs_e[0,:-1].detach().cpu().numpy() # T-1,N,2
-    vels = np.linalg.norm(vels, axis=-1).mean(axis=0)
-    inds = np.argsort(vels)
 
     fn = args.mp4_path.split('/')[-1].split('.')[0]
     rgb_out_f = './pt_vis_%s_rate%d_q%d.mp4' % (fn, rate, args.query_frame)
@@ -107,20 +150,26 @@ def forward_video(rgbs, model, args):
     temp_dir = 'temp_pt_vis_%s_rate%d_q%d' % (fn, rate, args.query_frame)
     utils.basic.mkdir(temp_dir)
     vis = []
+
+    frames = draw_pts_gpu(rgbs[0].to('cuda:0'), trajs_e[0], visconfs_e[0,:,:,1] > args.conf_thr,
+                          colors, rate=rate, bkg_opacity=args.bkg_opacity)
+    print('frames', frames.shape)
+
+    if args.vstack:
+        frames_top = rgbs[0].clamp(0, 255).byte().permute(0, 2, 3, 1).cpu().numpy() # T,H,W,3
+        frames = np.concatenate([frames_top, frames], axis=1)
+    
+    print('writing frames to disk')
+    f_start_time = time.time()
     for ti in range(T):
-        pt_vis = draw_pts(rgbs[0,ti].permute(1,2,0).detach().cpu().byte().numpy().copy(),
-                          trajs_e[0,ti].detach().cpu().numpy(),
-                          visconfs_e[0,ti,:,0].detach().cpu().numpy(),
-                          visconfs_e[0,ti,:,1].detach().cpu().numpy(),
-                          colors=colors,
-                          radius=max(int(rate//2),1),
-                          inds=inds)
-        vis.append(pt_vis)
-    for ti in range(T):
-        temp_out_f = '%s/%03d.png' % (temp_dir, ti)
-        im = PIL.Image.fromarray(vis[ti])
-        im.save(temp_out_f, "PNG", subsampling=0, quality=100)
-    os.system('/usr/bin/ffmpeg -y -hide_banner -loglevel error -f image2 -framerate 30 -pattern_type glob -i "./%s/*.png" -c:v libx264 -crf 20 -pix_fmt yuv420p %s' % (temp_dir, rgb_out_f))
+        temp_out_f = '%s/%03d.jpg' % (temp_dir, ti)
+        im = PIL.Image.fromarray(frames[ti])
+        im.save(temp_out_f)#, "PNG", subsampling=0, quality=80)
+    ftime = time.time()-f_start_time
+    print('finished writing; %.2f seconds / %d frames; %d fps' % (ftime, T, round(T/ftime)))
+        
+    print('writing mp4')
+    os.system('/usr/bin/ffmpeg -y -hide_banner -loglevel error -f image2 -framerate %d -pattern_type glob -i "./%s/*.jpg" -c:v libx264 -crf 20 -pix_fmt yuv420p %s' % (framerate, temp_dir, rgb_out_f))
 
     # # flow vis
     # rgb_out_f = './flow_vis.mp4'
@@ -167,12 +216,13 @@ def run(model, args):
         p.requires_grad = False
     model.eval()
 
-    rgbs = read_mp4(args.mp4_path)
+    rgbs, framerate = read_mp4(args.mp4_path)
     print('rgbs[0]', rgbs[0].shape)
     H,W = rgbs[0].shape[:2]
     
     # shorten & shrink the video, in case the gpu is small
-    rgbs = rgbs[:400]
+    if args.max_frames:
+        rgbs = rgbs[:args.max_frames]
     HH = 1024
     scale = min(HH/H, HH/W)
     H, W = int(H*scale), int(W*scale)
@@ -186,7 +236,7 @@ def run(model, args):
     print('rgbs', rgbs.shape)
     
     with torch.no_grad():
-        metrics = forward_video(rgbs, model, args)
+        metrics = forward_video(rgbs, framerate, model, args)
     
     return None
 
@@ -197,10 +247,13 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt_init", type=str, default='') # the ckpt we want (else default)
     parser.add_argument("--mp4_path", type=str, default='./demo_video/monkey.mp4') # input video 
     parser.add_argument("--query_frame", type=int, default=0) # which frame to track from
+    parser.add_argument("--max_frames", type=int, default=400) # trim the video to this length
     parser.add_argument("--inference_iters", type=int, default=4) # number of inference steps per forward
     parser.add_argument("--window_len", type=int, default=16) # model hyperparam
-    parser.add_argument("--subsample_rate", type=int, default=4) # vis hyp
-    parser.add_argument("--mixed_precision", action='store_true', default=False)
+    parser.add_argument("--rate", type=int, default=2) # vis hyp
+    parser.add_argument("--conf_thr", type=float, default=0.1) # vis hyp
+    parser.add_argument("--bkg_opacity", type=float, default=0.5) # vis hyp
+    parser.add_argument("--vstack", action='store_true', default=False) # whether to stack the input and output in the mp4
     args = parser.parse_args()
 
     from nets.alltracker import Net; model = Net(args.window_len)
