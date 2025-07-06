@@ -170,6 +170,8 @@ class PointDataset(torch.utils.data.Dataset):
         assert S == T
         
         rgbs = [rgb.astype(np.float32) for rgb in rgbs]
+
+        trajs = trajs.astype(np.float64)
         
         target_H, target_W = crop_size
         if target_H > H or target_W > W:
@@ -305,7 +307,7 @@ class PointDataset(torch.utils.data.Dataset):
         if np.random.rand() < self.v_flip_prob:
             rgbs = [rgb[::-1].copy() for rgb in rgbs]
             trajs[:, :, 1] = H-1 - trajs[:, :, 1]
-        return np.stack(rgbs), trajs
+        return np.stack(rgbs), trajs.astype(np.float32)
 
     def crop(self, rgbs, trajs, crop_size):
         T, N, _ = trajs.shape

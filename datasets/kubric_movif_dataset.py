@@ -163,7 +163,7 @@ class KubricMovifDataset(PointDataset):
         assert seq_len == len(rgbs)
 
         # ensure no crazy values
-        all_valid = np.nonzero(np.sum(np.sum(np.abs(trajs), axis=-1)<100000, axis=0)==seq_len)[0]
+        all_valid = np.nonzero(np.sum(np.sum(np.abs(trajs).astype(np.float64), axis=-1)<100000, axis=0)==seq_len)[0]
         trajs = trajs[:,all_valid]
         visibs = visibs[:,all_valid]
 
