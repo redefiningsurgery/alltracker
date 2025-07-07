@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alltracker"
+version = "0.1.0"
+authors = [
+  { name="Adam Harley", email="aharley@cs.cmu.edu" },
+]
+description = "A general-purpose framework for keypoints tracking."
+readme = "alltracker/README.md"  # Point to the readme inside the submodule
+requires-python = ">=3.6"
+license = { file="alltracker/LICENSE" } # Point to the license inside the submodule
+keywords = ["tracking", "computer vision", "object tracking", "particle filter", "pytorch"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+# The dependencies you provided
+dependencies = [
+    "torch",
+    "torchaudio",
+    "torchvision",
+    "pytorch_lightning==2.4.0",
+    "opencv-python==4.10.0.84",
+    "einops==0.8.0",
+    "moviepy==1.0.3",
+    "h5py==3.12.1",
+    "matplotlib==3.9.2",
+    "scikit-learn==1.5.2",
+    "scikit-image==0.24.0",
+    "tensorboardX==2.6.2.2",
+    "prettytable==3.12.0",
+]
