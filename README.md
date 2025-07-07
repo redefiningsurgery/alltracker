@@ -65,14 +65,16 @@ Start by downloding Kubric.
 S=24 data: [kubric_au.tar.gz](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/kubric_au.tar.gz?download=true)
 S=64 data: [part1](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_aa?download=true), [part2](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_ab?download=true), [part3](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_ac?download=true)
 
+Merge the parts by concatenating:
+```
+cat ce64_kub_aa ce64_kub_ab ce64_kub_ac > ce64_kub.tar.gz
+```
+
 The S=24 Kubric data is a torch export of the official `kubric-public/tfds/movi_f/512x512` data.
 
 With Kubric, you can skip the other datasets and start training Stage 1.
 
-Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main). There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
-```
-cat ce24_flt_aa ce24_flt_ab ce24_flt_ac ce24_flt_ad ce24_flt_ae > ce24_flt.tar.gz
-```
+Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main). There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. 
 
 On disk, the point tracking datasets should look like this:
 ```
