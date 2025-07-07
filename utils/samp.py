@@ -1,5 +1,5 @@
 import torch
-import utils.basic
+import alltracker.utils.basic
 import torch.nn.functional as F
 
 def bilinear_sampler(input, coords, align_corners=True, padding_mode="border"):
