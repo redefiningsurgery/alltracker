@@ -60,13 +60,36 @@ AllTracker is trained in two stages: Stage 1 is kubric alone; Stage 2 is a mix o
 
 ### Data prep
 
-Start by downloding Kubric: [kubric_au.tar.gz](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/kubric_au.tar.gz?download=true). This is just a torch export of the official `kubric-public/tfds/movi_f/512x512` data.
+Start by downloding Kubric. 
+
+S=24 data: [kubric_au.tar.gz](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/kubric_au.tar.gz?download=true)
+S=64 data: [part1](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_aa?download=true), [part2](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_ab?download=true), [part3](https://huggingface.co/datasets/aharley/alltracker_data/resolve/main/ce64_kub_ac?download=true)
+
+The S=24 Kubric data is a torch export of the official `kubric-public/tfds/movi_f/512x512` data.
 
 With Kubric, you can skip the other datasets and start training Stage 1.
 
 Download the rest of the point tracking datasets from [here](https://huggingface.co/datasets/aharley/alltracker_data/tree/main). There you will find 24-frame datasets, `ce24*.tar.gz`, and 64-frame datasets, `ce64*.tar.gz`. Some of the datasets are large, and they are split into parts, so you need to create the full files by concatenating. For example:
 ```
 cat ce24_flt_aa ce24_flt_ab ce24_flt_ac ce24_flt_ad ce24_flt_ae > ce24_flt.tar.gz
+```
+
+On disk, the point tracking datasets should look like this:
+```
+data/
+├── ce24/
+│   ├── drivingpt/
+│   ├── fltpt/
+│   ├── monkapt/
+│   ├── springpt/
+├── ce64/
+│   ├── drivingpt/
+│   ├── kublong/
+│   ├── monkapt/
+│   ├── podlong/
+│   ├── springpt/
+├── dynamicreplica/
+├── kubric_au/
 ```
 
 Download the optical flow datasets from the official websites: [FlyingChairs, FlyingThings3D, Monkaa, Driving](https://lmb.informatik.uni-freiburg.de/resources/datasets) [AutoFlow](https://autoflow-google.github.io/), [SPRING](https://spring-benchmark.org/), [VIPER](https://playing-for-benchmarks.org/download/), [HD1K](http://hci-benchmark.iwr.uni-heidelberg.de/), [KITTI](https://www.cvlibs.net/datasets/kitti/eval_scene_flow.php?benchmark=flow), [TARTANAIR](https://theairlab.org/tartanair-dataset/). 
