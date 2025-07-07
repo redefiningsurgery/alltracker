@@ -106,7 +106,7 @@ class Net(nn.Module):
                                            no_ctx=no_ctx)
 
         time_line = torch.linspace(0, seqlen-1, seqlen).reshape(1, seqlen, 1)
-        self.register_buffer("time_emb", utils.misc.get_1d_sincos_pos_embed_from_grid(self.dim, time_line[0])) # 1,S,C
+        self.register_buffer("time_emb", alltracker.utils.misc.get_1d_sincos_pos_embed_from_grid(self.dim, time_line[0])) # 1,S,C
 
         
     def fetch_time_embed(self, t, dtype, is_training=False):
@@ -534,7 +534,7 @@ class Net(nn.Module):
                 rel_coords = torch.cat([rel_coords_forward, rel_coords_backward], dim=-1) # B,S,H8*W8,4
 
                 if self.use_sinrelmotion:
-                    rel_pos_emb_input = utils.misc.posenc(
+                    rel_pos_emb_input = alltracker.utils.misc.posenc(
                         rel_coords,
                         min_deg=0,
                         max_deg=10,
@@ -545,7 +545,7 @@ class Net(nn.Module):
                 
             else:
                 if self.use_sinmotion:
-                    pos_emb_input = utils.misc.posenc(
+                    pos_emb_input = alltracker.utils.misc.posenc(
                         flows8.reshape(B,S,H8*W8,2),
                         min_deg=0,
                         max_deg=10,
