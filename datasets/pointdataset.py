@@ -46,6 +46,7 @@ class PointDataset(torch.utils.data.Dataset):
 
         self.h_flip_prob = 0.5
         self.v_flip_prob = 0.5
+        self.rot_prob = 0.5
 
     def getitem_helper(self, index):
         return NotImplementedError

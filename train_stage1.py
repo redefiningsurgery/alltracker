@@ -32,10 +32,10 @@ def get_parameter_names(model, forbidden_layer_types):
     result += list(model._parameters.keys())
     return result
 
-def get_sparse_dataset(args, crop_size, N, T, random_first=False, version='au'):
+def get_sparse_dataset(args, crop_size, N, T, random_first=False, version='kubric_au'):
     from datasets import kubric_movif_dataset
     dataset = kubric_movif_dataset.KubricMovifDataset(
-        data_root=os.path.join(args.data_dir, 'kubric_%s' % version),
+        data_root=os.path.join(args.data_dir, version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
@@ -363,7 +363,7 @@ def run(model, args):
 
     if fabric.global_rank in ranks_56:
         sparse_dataset56, sparse_dataset_names56 = get_sparse_dataset(
-            args, crop_size=args.crop_size_56, T=56, N=args.traj_per_sample_56, random_first=False, version='bt')
+            args, crop_size=args.crop_size_56, T=56, N=args.traj_per_sample_56, random_first=False, version='ce64/kublong')
         sparse_loader56 = torch.utils.data.DataLoader(
             sparse_dataset56,
             batch_size=args.batch_size,
@@ -381,7 +381,7 @@ def run(model, args):
         dataset_names += sparse_dataset_names56
     else:
         sparse_dataset24, sparse_dataset_names24 = get_sparse_dataset(
-            args, crop_size=args.crop_size_24, T=24, N=args.traj_per_sample_24, random_first=args.random_first_frame, version='au')
+            args, crop_size=args.crop_size_24, T=24, N=args.traj_per_sample_24, random_first=args.random_first_frame, version='kubric_au')
         sparse_loader24 = torch.utils.data.DataLoader(
             sparse_dataset24,
             batch_size=args.batch_size,
@@ -575,7 +575,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_augs", default=True)
     parser.add_argument("--seqlen", type=int, default=16)
     parser.add_argument("--crop_size_24", nargs="+", default=[384,512])
-    parser.add_argument("--crop_size_56", nargs="+", default=[256,256])
+    parser.add_argument("--crop_size_56", nargs="+", default=[256,384])
     parser.add_argument("--random_number_traj", default=False, action='store_true')
     parser.add_argument("--use_huber_loss", default=False, action='store_true')
     parser.add_argument("--debug", default=False, action='store_true')

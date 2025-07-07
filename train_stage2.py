@@ -49,7 +49,7 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
     dsets = None
     dsets_exclude = None
     export_dataset = exportdataset.ExportDataset(
-        data_root=os.path.join(args.data_dir, 'alltrack_export'),
+        data_root=os.path.join(args.data_dir),
         version=version,
         dsets=dsets,
         dsets_exclude=dsets_exclude,
@@ -67,7 +67,7 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
 
     # sample clips from the S64 pod & kub exports 
     export_dataset2 = exportdataset.ExportDataset(
-        data_root=os.path.join(args.data_dir, 'alltrack_export'),
+        data_root=os.path.join(args.data_dir),
         version='ce64',
         dsets=['podlong','kublong'],
         dsets_exclude=dsets_exclude,
@@ -97,9 +97,9 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
 
     # stage1 kubric data
     from datasets import kubric_movif_dataset
-    kubric_version = 'au'
+    kubric_version = 'kubric_au'
     kub_dataset = kubric_movif_dataset.KubricMovifDataset(
-        data_root=os.path.join(args.data_dir, 'kubric_%s' % kubric_version),
+        data_root=os.path.join(args.data_dir, kubric_version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
@@ -121,11 +121,11 @@ def get_multi_dataset_24(args, crop_size, N, version='aa00', T=56):
 
 
 def get_multi_dataset_64(args, crop_size, N, version='aa00', T=56):
-    from datasets import exportdataset18
+    from datasets import exportdataset
     dsets = None
     dsets_exclude = None
     export_dataset = exportdataset.ExportDataset(
-        data_root=os.path.join(args.data_dir, 'alltrack_export'),
+        data_root=os.path.join(args.data_dir),
         version=version,
         dsets=dsets,
         dsets_exclude=dsets_exclude,
@@ -141,12 +141,11 @@ def get_multi_dataset_64(args, crop_size, N, version='aa00', T=56):
         only_first=True,
     )
 
-    # sample a bit more from kubric so we don't forget
-    export_dataset2 = exportdataset.ExportDataset(
-        data_root=os.path.join(args.data_dir, 'alltrack_export'),
-        version='ce64',
-        dsets=['kublong'],
-        dsets_exclude=dsets_exclude,
+    # stage1 kubric data (even though it's included in export_dataset)
+    from datasets import kubric_movif_dataset
+    kubric_version = 'ce64/kublong'
+    kub_dataset = kubric_movif_dataset.KubricMovifDataset(
+        data_root=os.path.join(args.data_dir, kubric_version),
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
@@ -158,10 +157,10 @@ def get_multi_dataset_64(args, crop_size, N, version='aa00', T=56):
         shuffle=True,
         only_first=True,
     )
-
+    
     from datasets import dynrep_dataset
     dyn_dataset = dynrep_dataset.DynamicReplicaDataset(
-        args.data_dir,
+        os.path.join(args.data_dir, 'dynamicreplica'), 
         crop_size=crop_size,
         seq_len=T,
         traj_per_sample=N,
@@ -172,7 +171,7 @@ def get_multi_dataset_64(args, crop_size, N, version='aa00', T=56):
     )
     
     from torch.utils.data import ConcatDataset
-    dataset = ConcatDataset([export_dataset] + [export_dataset2] + [dyn_dataset])
+    dataset = ConcatDataset([export_dataset] + [kub_dataset] + [dyn_dataset])
     dataset_names = export_dataset.dataset_names + [dyn_dataset.dname]
     
     return dataset, dataset_names
@@ -694,8 +693,8 @@ def run(model, args):
         log_ranks = [0,2,5]
     else:
         ranks_2 = []
-        ranks_24 = [0]
-        ranks_56 = []
+        ranks_24 = []
+        ranks_56 = [0]
         log_ranks = [0]
         print('assuming we are debugging with 1 gpu...')
     
